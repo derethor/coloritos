@@ -101,6 +101,9 @@
   .global-curve-column{display:flex;flex-direction:column;gap:14px;}
   .color-curves-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
   .color-curves-grid .section{margin-top:16px;min-width:0;}
+  .row-import{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:12px;}
+  .row-import textarea{min-height:54px;resize:vertical;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:7px 8px;font:10px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;}
+  .row-import .import-status{grid-column:1/-1;color:var(--sub);font-size:.68rem;}
   @media (max-width:1100px){
     .layout{overflow-x:auto;}
     .palette{flex-basis:720px;width:720px;}
@@ -134,11 +137,52 @@ const COLOR_DEFS = [
   ["stone",58,.06],["taupe",45,.08],["mauve",325,.10],["mist",220,.08],["olive",110,.12]
 ];
 
+// Canonical Tailwind CSS OKLCH triples, compressed as L×1000,C×1000,H×1000.
+const TW_DATA = {
+  red:'971,13,17380;936,32,17717;885,62,18334;808,114,19571;704,191,22216;637,237,25331;577,245,27325;505,213,27518;444,177,26899;396,141,25723;258,92,26042',
+  orange:'980,16,73684;954,38,75164;901,76,70697;837,128,66290;750,183,55934;705,213,47604;646,222,41116;553,195,38402;470,157,37304;408,123,38172;266,79,36259',
+  amber:'987,22,95277;962,59,95617;924,120,95746;879,169,91605;828,189,84429;769,188,70080;666,179,58318;555,163,48998;473,137,46201;414,112,45904;279,77,45635',
+  yellow:'987,26,102212;973,71,103193;945,129,101540;905,182,98111;852,199,91936;795,184,86047;681,162,75834;554,135,66442;476,114,61907;421,95,57708;286,66,53813',
+  lime:'986,31,120757;967,67,122328;938,127,124321;897,196,126665;841,238,128850;768,233,130850;648,200,131684;532,157,131589;453,124,130933;405,101,131063;274,72,132109',
+  green:'982,18,155826;962,44,156743;925,84,155995;871,150,154449;792,209,151711;723,219,149579;627,194,149214;527,154,150069;448,119,151328;393,95,152535;266,65,152934',
+  emerald:'979,21,166113;950,52,163051;905,93,164150;845,143,164978;765,177,163223;696,170,162480;596,145,163225;508,118,165612;432,95,166913;378,77,168940;262,51,172552',
+  teal:'984,14,180720;953,51,180801;910,96,180426;855,138,181071;777,152,181912;704,140,182503;600,118,184704;511,96,186391;437,78,188216;386,63,188416;277,46,192524',
+  cyan:'984,19,200873;956,45,203388;917,80,205041;865,127,207078;789,154,211530;715,143,215221;609,126,221723;520,105,223128;450,85,224283;398,70,227392;302,56,229695',
+  sky:'977,13,236620;951,26,236824;901,58,230902;828,111,230318;746,160,232661;685,169,237323;588,158,241966;500,134,242749;443,110,240790;391,90,240876;293,66,243157',
+  blue:'970,14,254604;932,32,255585;882,59,254128;809,105,251813;707,165,254624;623,214,259815;546,245,262881;488,243,264376;424,199,265638;379,146,265522;282,91,267935',
+  indigo:'962,18,272314;930,34,272788;870,65,274039;785,115,274713;673,182,276935;585,233,277117;511,262,276966;457,240,277023;398,195,277366;359,144,278697;257,90,281288',
+  violet:'969,16,293756;943,29,294588;894,57,293283;811,111,293571;702,183,293541;606,250,292717;541,281,293009;491,270,292581;432,232,292759;380,189,293745;283,141,291089',
+  purple:'977,14,308299;946,33,307174;902,63,306703;827,119,306383;714,203,305504;627,265,303900;558,288,302321;496,265,301924;438,218,303724;381,176,304987;291,149,302717',
+  fuchsia:'977,17,320058;952,37,318852;903,76,319620;833,145,321434;740,238,322160;667,295,322150;591,293,322896;518,253,323949;452,211,324591;401,170,325612;293,136,325661',
+  pink:'971,14,343198;948,28,342258;899,61,343231;823,120,346018;718,202,349761;656,241,354308;592,249,584;525,223,3958;459,187,3815;408,153,2432;284,109,3907',
+  rose:'969,15,12422;941,30,12580;892,58,10001;810,117,11638;712,194,13428;645,246,16439;586,253,17585;514,222,16935;455,188,13697;410,159,10272;271,105,12094',
+  slate:'984,3,247858;968,7,247896;929,13,255508;869,22,252894;704,40,256788;554,46,257417;446,43,257281;372,44,257287;279,41,260031;208,42,265755;129,42,264695',
+  gray:'985,2,247839;967,3,264542;928,6,264531;872,10,258338;707,22,261325;551,27,264364;446,30,256802;373,34,259733;278,33,256848;210,34,264665;130,28,261692',
+  zinc:'985,0,0;967,1,286375;920,4,286320;871,6,286286;705,15,286067;552,16,285938;442,17,285786;370,13,285805;274,6,286033;210,6,285885;141,5,285823',
+  neutral:'985,0,0;970,0,0;922,0,0;870,0,0;708,0,0;556,0,0;439,0,0;371,0,0;269,0,0;205,0,0;145,0,0',
+  stone:'985,1,106423;970,1,106424;923,3,48717;869,5,56366;709,10,56259;553,13,58071;444,11,73639;374,10,67558;268,7,34298;216,6,56043;147,4,49250',
+  taupe:'986,2,67800;960,2,17200;922,5,34300;868,7,39500;714,14,41200;547,21,43100;438,17,39300;367,16,35700;268,11,36500;214,9,43100;147,4,49300',
+  mauve:'985,0,0;960,3,325600;922,5,325620;865,12,325680;711,19,323020;542,34,322500;435,29,321780;364,29,323890;263,24,320120;212,19,322120;145,8,326000',
+  mist:'987,2,197100;963,2,197100;925,5,214300;872,7,219600;723,14,214400;560,21,213500;450,17,213200;378,15,216000;275,11,216900;218,8,223900;148,4,228800',
+  olive:'988,3,106500;966,5,106500;930,7,106500;880,11,106600;737,21,106900;580,31,107300;466,25,107300;394,23,107400;286,16,107400;228,13,107400;153,6,107100',
+};
+
+function tailwindRamp(name){
+  return TW_DATA[name].split(';').map(entry=>{
+    const [L,C,H]=entry.split(',').map(Number);
+    return [L/1000,C/1000,H/1000];
+  });
+}
+
 function makeBand(name, hue, chromaScale=1){
-  const L = SHADES.map(()=>0), C = SHADES.map(()=>0);
+  const ramp=tailwindRamp(name);
+  const H=ramp.map(point=>point[2]);
+  const L=ramp.map((point,i)=>point[0]-L_DEFAULT[i]);
+  const C=ramp.map((point,i)=>point[1]-C_DEFAULT[i]*chromaScale);
+  hue=H[5];
   return {
-    name, hue, chromaScale, L, C,
-    default: { hue, L: L.slice(), C: C.slice() }
+    name, hue, chromaScale, H, L, C,
+    default: { hue, H:H.slice(), L: L.slice(), C: C.slice() }
   };
 }
 
@@ -153,6 +197,8 @@ let editorMode = 'color';
 let showColorInfo = false;
 let compactPalette = true;
 let soloBand = null;
+let rowImportText = '';
+let rowImportStatus = '';
 
 // ---------- OKLCH -> sRGB ----------
 function oklchToSrgb(L, C, Hdeg){
@@ -179,10 +225,31 @@ function oklchToSrgb(L, C, Hdeg){
   return { rgb:[Math.round(r*255),Math.round(g*255),Math.round(bl*255)] };
 }
 
+function srgbToOklch(rgb){
+  const linear=byte=>{ const v=byte/255; return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4); };
+  const r=linear(rgb[0]),g=linear(rgb[1]),b=linear(rgb[2]);
+  const l=Math.cbrt(.4122214708*r+.5363325363*g+.0514459929*b);
+  const m=Math.cbrt(.2119034982*r+.6806995451*g+.1073969566*b);
+  const s=Math.cbrt(.0883024619*r+.2817188376*g+.6299787005*b);
+  const L=.2104542553*l+.793617785*m-.0040720468*s;
+  const a=1.9779984951*l-2.428592205*m+.4505937099*s;
+  const bb=.0259040371*l+.7827717662*m-.808675766*s;
+  return {L,C:Math.hypot(a,bb),H:(Math.atan2(bb,a)*180/Math.PI+360)%360};
+}
+
+function parseHexColors(text){
+  const tokens=text.match(/#?[0-9a-f]{6}\b|#?[0-9a-f]{3}\b/gi)||[];
+  return tokens.map(token=>{
+    let hex=token.replace('#','');
+    if(hex.length===3) hex=hex.split('').map(c=>c+c).join('');
+    return [parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)];
+  });
+}
+
 function swatchColor(band,i){
   const L=Math.min(1,Math.max(0,globalCurves.L[i]+band.L[i]));
   const C=Math.min(.4,Math.max(0,globalCurves.C[i]*band.chromaScale+band.C[i]));
-  return oklchToSrgb(L,C,band.hue);
+  return oklchToSrgb(L,C,band.H[i]);
 }
 
 function rgbToHsv([r,g,b]){
@@ -282,8 +349,8 @@ function startSwatchDrag(ev, bi, si){
 
   function move(e){
     const dx = e.clientX - startX, dy = e.clientY - startY;
-    band.C[si] = Math.min(0.15, Math.max(-0.15, startC + dx*0.0012));
-    band.L[si] = Math.min(0.25, Math.max(-0.25, startL - dy*0.002));
+    band.C[si] = Math.min(0.4, Math.max(-0.4, startC + dx*0.0012));
+    band.L[si] = Math.min(1, Math.max(-1, startL - dy*0.002));
     renderAll();
   }
   function up(){
@@ -478,7 +545,7 @@ function renderPanel(){
     selected.forEach(bi=>{
       const b = bands[bi];
       if(b.locked) return;
-      b.hue = b.default.hue; b.L = b.default.L.slice(); b.C = b.default.C.slice();
+      b.hue = b.default.hue; b.H=b.default.H.slice(); b.L = b.default.L.slice(); b.C = b.default.C.slice();
     });
     renderAll();
   };
@@ -490,6 +557,31 @@ function renderPanel(){
   sub.textContent = multi ? bands.filter((_,i)=>isSelected(i)).map(b=>b.name).join(', ') : `OKLCH ramp, shades 50 → 950`;
   panel.appendChild(sub);
 
+  const importer=document.createElement('div'); importer.className='row-import';
+  const importInput=document.createElement('textarea');
+  importInput.placeholder='Paste 11 hex colors in shade order: #fff #f5f5f5 … #111';
+  importInput.value=rowImportText;
+  const importBtn=document.createElement('button'); importBtn.className='btn'; importBtn.textContent='Import 11 colors';
+  const importStatus=document.createElement('div'); importStatus.className='import-status'; importStatus.textContent=rowImportStatus;
+  importBtn.onclick=()=>{
+    rowImportText=importInput.value;
+    const colors=parseHexColors(rowImportText);
+    if(colors.length!==SHADES.length){
+      rowImportStatus=`Expected 11 hex values; found ${colors.length}.`;
+      importStatus.textContent=rowImportStatus; return;
+    }
+    if(band.locked){ rowImportStatus=`Unlock ${band.name} before importing.`; importStatus.textContent=rowImportStatus; return; }
+    const converted=colors.map(srgbToOklch);
+    band.H=converted.map(color=>color.H);
+    band.L=converted.map((color,i)=>color.L-globalCurves.L[i]);
+    band.C=converted.map((color,i)=>color.C-globalCurves.C[i]*band.chromaScale);
+    band.hue=band.H[5];
+    rowImportStatus=`Imported ${colors.length} colors into ${band.name}, shades 50 → 950.`;
+    renderAll();
+  };
+  importer.appendChild(importInput); importer.appendChild(importBtn); importer.appendChild(importStatus);
+  panel.appendChild(importer);
+
   // HUE
   const hueSection = document.createElement('div'); hueSection.className='section';
   hueSection.innerHTML = `<div class="section-title">Hue <span id="hueVal"></span></div><div class="hue-track"></div>`;
@@ -498,7 +590,10 @@ function renderPanel(){
   hueSlider.oninput = () => {
     const val = Number(hueSlider.value);
     const delta = val - band.hue;
-    selected.forEach(bi => { if(!bands[bi].locked) bands[bi].hue = (bands[bi].hue + delta + 360) % 360; });
+    selected.forEach(bi => { if(!bands[bi].locked){
+      bands[bi].hue=(bands[bi].hue+delta+360)%360;
+      bands[bi].H=bands[bi].H.map(h=>(h+delta+360)%360);
+    }});
     document.getElementById('hueVal').textContent = Math.round(val)+'°';
     renderPaletteOnly(); updateReadouts();
   };
@@ -510,7 +605,8 @@ function renderPanel(){
 
   // Per-color curves are zero-based adjustments over the global ramp.
   const lSection = document.createElement('div'); lSection.className='section';
-  lSection.innerHTML = `<div class="section-title"><span>Lightness adjustment · ±25%</span><button class="btn tiny" type="button">Reset</button></div>`;
+  const lLimit=Math.max(.25,...band.L.map(Math.abs));
+  lSection.innerHTML = `<div class="section-title"><span>Lightness adjustment · ±${lLimit.toFixed(2)}</span><button class="btn tiny" type="button">Reset</button></div>`;
   lSection.querySelector('button').onclick=()=>{
     selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].L=SHADES.map(()=>0); });
     renderAll();
@@ -518,7 +614,7 @@ function renderPanel(){
   lSection.appendChild(buildCurveSVG(
     ()=>band.L,
     bi=>bands[bi].locked?null:bands[bi].L,
-    {small:false,min:-.25,max:.25,desc:false}
+    {small:false,min:-lLimit,max:lLimit,desc:false}
   ));
   lSection.insertAdjacentHTML('beforeend','<div class="curve-help">Zero means “use global” · drag pivots · double-click to add · Alt/right-click to remove</div>');
   curvesGrid.appendChild(lSection);
@@ -526,7 +622,8 @@ function renderPanel(){
   // SATURATION curve
   const cSection = document.createElement('div'); cSection.className='section';
   const cTitle = document.createElement('div'); cTitle.className='section-title';
-  cTitle.innerHTML = `<span>Saturation adjustment · ±0.15</span><button class="btn tiny" type="button">Reset</button>`;
+  const cLimit=Math.max(.15,...band.C.map(Math.abs));
+  cTitle.innerHTML = `<span>Saturation adjustment · ±${cLimit.toFixed(2)}</span><button class="btn tiny" type="button">Reset</button>`;
   cTitle.querySelector('button').onclick = () => {
     selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].C=SHADES.map(()=>0); });
     renderAll();
@@ -535,7 +632,7 @@ function renderPanel(){
   const cSvg = buildCurveSVG(
     ()=>band.C,
     (bi)=>bands[bi].locked?null:bands[bi].C,
-    {small:false,min:-.15,max:.15,desc:false}
+    {small:false,min:-cLimit,max:cLimit,desc:false}
   );
   cSection.appendChild(cSvg);
   cSection.insertAdjacentHTML('beforeend','<div class="curve-help">Zero means “use global” · drag pivots · double-click to add · Alt/right-click to remove</div>');
@@ -603,7 +700,10 @@ function buildHueWheel(){
       function move(e){
         const x=(e.clientX-rect.left)*300/rect.width-150;
         const y=(e.clientY-rect.top)*300/rect.height-150;
-        band.hue=(Math.atan2(y,x)*180/Math.PI+90+360)%360;
+        const nextHue=(Math.atan2(y,x)*180/Math.PI+90+360)%360;
+        const delta=((nextHue-band.hue+540)%360)-180;
+        band.hue=nextHue;
+        band.H=band.H.map(h=>(h+delta+360)%360);
         update(); renderPaletteOnly();
       }
       function up(){ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); }
