@@ -14,8 +14,9 @@
   header{padding:20px 24px 8px;text-align:center;}
   header h1{margin:0 0 4px;font-size:1.6rem;font-weight:700;letter-spacing:-.01em;}
   header p{margin:0;color:var(--sub);font-size:.85rem;}
+  .header-actions{margin-top:10px;display:flex;justify-content:center;}
 
-  .layout{display:flex;gap:20px;max-width:1400px;margin:20px auto;padding:0 24px 60px;align-items:flex-start;}
+  .layout{display:flex;gap:20px;max-width:1800px;margin:20px auto;padding:0 24px 60px;align-items:flex-start;}
   .palette{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
 
   .band{display:flex;align-items:center;gap:10px;border-radius:10px;padding:4px;transition:background .15s;}
@@ -27,10 +28,14 @@
   .band-label:hover{color:var(--text);}
 
   .swatches{display:flex;flex:1;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px #0006;}
-  .swatch{flex:1;height:44px;position:relative;cursor:grab;}
-  .swatch:active{cursor:grabbing;}
-  .swatch-lock{position:absolute;inset:0 auto 0 0;width:32px;display:grid;place-items:center;background:#0008;color:#fff;
+  .swatch{flex:1;min-width:70px;height:82px;position:relative;cursor:crosshair;display:flex;align-items:flex-end;}
+  .swatch:active{cursor:crosshair;}
+  .swatch-lock{position:absolute;inset:0 auto 0 0;width:24px;display:grid;place-items:center;background:#0008;color:#fff;
     border:0;border-right:1px solid #ffffff30;z-index:2;cursor:pointer;font-size:16px;text-shadow:0 1px 2px #000;}
+  .swatch-info{position:absolute;inset:auto 3px 3px;padding:3px 4px;border-radius:4px;background:#0007;color:#fff;
+    font:600 7px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.02em;text-shadow:0 1px 1px #000;pointer-events:none;white-space:nowrap;}
+  .swatch:first-child .swatch-info{left:26px;}
+  body.hide-color-info .swatch-info{display:none;}
 
   .shade-row{display:flex;gap:6px;margin-top:2px;}
   .shade-row .band-label{visibility:hidden;}
@@ -44,6 +49,7 @@
   .btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:5px 10px;font-size:.72rem;cursor:pointer;}
   .btn:hover{background:#242424;}
   .btn:active{transform:translateY(1px);}
+  .btn.tiny{padding:2px 7px;font-size:.62rem;line-height:1.2;text-transform:none;letter-spacing:0;}
 
   .section{margin-top:16px;}
   .section-title{font-size:.68rem;letter-spacing:.08em;color:var(--sub);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
@@ -94,6 +100,7 @@
 <header>
   <h1>Tailwind Rainbow Editor</h1>
   <p>Edit individual OKLCH ramps or shape the whole rainbow with global Bézier curves · lock a color to protect it from edits</p>
+  <div class="header-actions"><button class="btn" id="toggleColorInfo" type="button" aria-pressed="true">Hide color info</button></div>
 </header>
 
 <div class="layout">
@@ -116,7 +123,7 @@ const COLOR_DEFS = [
 ];
 
 function makeBand(name, hue){
-  const L = L_DEFAULT.slice(), C = C_DEFAULT.slice();
+  const L = SHADES.map(()=>0), C = SHADES.map(()=>0);
   return {
     name, hue, L, C,
     default: { hue, L: L.slice(), C: C.slice() }
@@ -132,6 +139,7 @@ let selected = [];      // indices, in click order
 let clipboard = null;   // {hue, L, C}
 let opts = { smooth:false, lockOrder:true, lockEnds:false, chromaOpen:false };
 let editorMode = 'color';
+let showColorInfo = true;
 
 // ---------- OKLCH -> sRGB ----------
 function oklchToSrgb(L, C, Hdeg){
@@ -159,7 +167,22 @@ function oklchToSrgb(L, C, Hdeg){
 }
 
 function swatchColor(band,i){
-  return oklchToSrgb(band.L[i], band.C[i], band.hue);
+  const L=Math.min(1,Math.max(0,globalCurves.L[i]+band.L[i]));
+  const C=Math.min(.4,Math.max(0,globalCurves.C[i]+band.C[i]));
+  return oklchToSrgb(L,C,band.hue);
+}
+
+function rgbToHsv([r,g,b]){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+  let h=0;
+  if(d){
+    if(max===r) h=60*(((g-b)/d)%6);
+    else if(max===g) h=60*((b-r)/d+2);
+    else h=60*((r-g)/d+4);
+  }
+  if(h<0) h+=360;
+  return {h,s:max?d/max:0,v:max};
 }
 
 // ---------- selection helpers ----------
@@ -200,7 +223,12 @@ function renderPalette(){
       sw.className = 'swatch';
       const {rgb} = swatchColor(band, si);
       sw.style.background = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
-      sw.title = `${band.name}-${shade}`;
+      sw.title = `${band.name}-${shade} · drag horizontally for saturation, vertically for lightness`;
+      const hsv=rgbToHsv(rgb);
+      const hex='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+      const info=document.createElement('div'); info.className='swatch-info';
+      info.innerHTML=`HSV ${Math.round(hsv.h)}° ${Math.round(hsv.s*100)}% ${Math.round(hsv.v*100)}%<br>${hex}`;
+      sw.appendChild(info);
 
       if(si===0){
         const lock = document.createElement('button');
@@ -236,13 +264,13 @@ function startSwatchDrag(ev, bi, si){
 
   const band = bands[bi];
   const startX = ev.clientX, startY = ev.clientY;
-  const startHue = band.hue, startC = band.C[si];
+  const startL=band.L[si], startC=band.C[si];
 
   function move(e){
     const dx = e.clientX - startX, dy = e.clientY - startY;
-    band.hue = (startHue + dx*0.6 + 360) % 360;
-    band.C[si] = Math.min(0.4, Math.max(0, startC - dy*0.0012));
-    renderAll(true);
+    band.C[si] = Math.min(0.15, Math.max(-0.15, startC + dx*0.0012));
+    band.L[si] = Math.min(0.25, Math.max(-0.25, startL - dy*0.002));
+    renderAll();
   }
   function up(){
     window.removeEventListener('pointermove', move);
@@ -263,8 +291,10 @@ function buildCurveSVG(getArr, setArr, opts_){
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.setAttribute('class','curve'+(opts_.small?' small':''));
 
-  function normalize(v){ return opts_.norm ? v/opts_.norm : v; }
-  function denormalize(v){ return opts_.norm ? v*opts_.norm : v; }
+  const valueMin=opts_.min!==undefined?opts_.min:0;
+  const valueMax=opts_.max!==undefined?opts_.max:(opts_.norm||1);
+  function normalize(v){ return (v-valueMin)/(valueMax-valueMin); }
+  function denormalize(v){ return valueMin+v*(valueMax-valueMin); }
 
   // Ramer–Douglas–Peucker fitting keeps only pivots that materially affect the ramp.
   function fitPivots(values, tolerance=0.018){
@@ -304,15 +334,20 @@ function buildCurveSVG(getArr, setArr, opts_){
   function sampledValues(){ return Array.from({length:n},(_,i)=>denormalize(sampleAt(i/(n-1)))); }
 
   function commit(previous){
-    const next=sampledValues(), max=opts_.norm||1;
+    const next=sampledValues();
+    const globalBefore=opts_.protectLocked?globalCurves[opts_.protectLocked].slice():null;
     const targets=opts_.targets?opts_.targets():selected;
     targets.forEach(target=>{
       const arr=setArr(target); if(!arr) return;
-      for(let i=0;i<n;i++) arr[i]=Math.min(max,Math.max(0,arr[i]+next[i]-previous[i]));
+      for(let i=0;i<n;i++) arr[i]=Math.min(valueMax,Math.max(valueMin,arr[i]+next[i]-previous[i]));
       if(opts.lockOrder && opts_.desc){
         for(let i=1;i<n;i++) arr[i]=Math.min(arr[i],arr[i-1]);
       }
     });
+    if(globalBefore){
+      const key=opts_.protectLocked;
+      bands.forEach(b=>{ if(b.locked) for(let i=0;i<n;i++) b[key][i]-=globalCurves[key][i]-globalBefore[i]; });
+    }
     renderPaletteOnly(); updateReadouts();
   }
 
@@ -424,7 +459,7 @@ function renderPanel(){
     selected.forEach(bi=>{
       const b = bands[bi];
       if(b.locked) return;
-      b.hue = b.default.hue; b.C = b.default.C.slice();
+      b.hue = b.default.hue; b.L = b.default.L.slice(); b.C = b.default.C.slice();
     });
     renderAll();
   };
@@ -451,17 +486,36 @@ function renderPanel(){
   hueSection.appendChild(hueSlider);
   panel.appendChild(hueSection);
 
+  // Per-color curves are zero-based adjustments over the global ramp.
+  const lSection = document.createElement('div'); lSection.className='section';
+  lSection.innerHTML = `<div class="section-title"><span>Lightness adjustment · ±25%</span><button class="btn tiny" type="button">Reset</button></div>`;
+  lSection.querySelector('button').onclick=()=>{
+    selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].L=SHADES.map(()=>0); });
+    renderAll();
+  };
+  lSection.appendChild(buildCurveSVG(
+    ()=>band.L,
+    bi=>bands[bi].locked?null:bands[bi].L,
+    {small:false,min:-.25,max:.25,desc:false}
+  ));
+  lSection.insertAdjacentHTML('beforeend','<div class="curve-help">Zero means “use global” · drag pivots · double-click to add · Alt/right-click to remove</div>');
+  panel.appendChild(lSection);
+
   // CHROMA curve (collapsible)
   const cSection = document.createElement('div'); cSection.className='section';
   const cTitle = document.createElement('div'); cTitle.className='section-title';
-  cTitle.innerHTML = `<span>Chroma</span><span class="toggle-link">${opts.chromaOpen?'Collapse':'Expand'}</span>`;
+  cTitle.innerHTML = `<span>Saturation adjustment · ±0.15</span><span><button class="btn tiny" type="button">Reset</button> <span class="toggle-link">${opts.chromaOpen?'Collapse':'Expand'}</span></span>`;
+  cTitle.querySelector('button').onclick = () => {
+    selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].C=SHADES.map(()=>0); });
+    renderAll();
+  };
   cTitle.querySelector('.toggle-link').onclick = () => { opts.chromaOpen = !opts.chromaOpen; renderPanel(); };
   cSection.appendChild(cTitle);
   if(opts.chromaOpen){
     const cSvg = buildCurveSVG(
       ()=>band.C,
       (bi)=>bands[bi].locked?null:bands[bi].C,
-      { small:true, norm:0.4, desc:false }
+      {small:true,min:-.15,max:.15,desc:false}
     );
     cSection.appendChild(cSvg);
     cSection.insertAdjacentHTML('beforeend','<div class="curve-help">Drag pivots · double-click to add · Alt/right-click a pivot to remove</div>');
@@ -482,13 +536,14 @@ function renderPanel(){
   const cpRow = document.createElement('div');
   cpRow.className='row-between'; cpRow.style.marginTop='12px';
   const copyBtn = document.createElement('button'); copyBtn.className='btn'; copyBtn.textContent='Copy curve';
-  copyBtn.onclick = () => { clipboard = { hue: band.hue, C: band.C.slice() }; };
+  copyBtn.onclick = () => { clipboard = { hue: band.hue, L:band.L.slice(), C: band.C.slice() }; };
   const pasteBtn = document.createElement('button'); pasteBtn.className='btn'; pasteBtn.textContent='Paste curve';
   pasteBtn.disabled = !clipboard;
   pasteBtn.onclick = () => {
     if(!clipboard) return;
     selected.forEach(bi=>{
       if(bands[bi].locked) return;
+      bands[bi].L = clipboard.L.slice();
       bands[bi].C = clipboard.C.slice();
     });
     renderAll();
@@ -559,12 +614,11 @@ function renderGlobalPanel(panel){
   header.innerHTML='<h2>Global rainbow</h2>';
   const reset=document.createElement('button'); reset.className='btn'; reset.textContent='Reset global';
   reset.onclick=()=>{
-    ['L','C'].forEach(key=>{
-      const defaults=key==='L'?L_DEFAULT:C_DEFAULT;
-      const current=globalCurves[key];
-      bands.forEach(b=>{ if(!b.locked) b[key]=b[key].map((v,i)=>Math.max(0,Math.min(key==='L'?1:.4,v+defaults[i]-current[i]))); });
-      globalCurves[key]=defaults.slice();
-    });
+    const beforeL=globalCurves.L.slice(), beforeC=globalCurves.C.slice();
+    globalCurves.L=L_DEFAULT.slice(); globalCurves.C=C_DEFAULT.slice();
+    bands.forEach(b=>{ if(b.locked) for(let i=0;i<SHADES.length;i++){
+      b.L[i]-=globalCurves.L[i]-beforeL[i]; b.C[i]-=globalCurves.C[i]-beforeC[i];
+    }});
     renderAll();
   };
   header.appendChild(reset); panel.appendChild(header);
@@ -583,8 +637,8 @@ function renderGlobalPanel(panel){
     section.innerHTML=`<div class="section-title">${title}<span>Bézier</span></div>`;
     section.appendChild(buildCurveSVG(
       ()=>globalCurves[key],
-      bi=>bi==='global' ? globalCurves[key] : (bands[bi].locked?null:bands[bi][key]),
-      {small:false,norm,desc,targets:()=>['global',...bands.map((_,i)=>i)]}
+      target=>target==='global'?globalCurves[key]:null,
+      {small:false,norm,desc,targets:()=>['global'],protectLocked:key}
     ));
     section.insertAdjacentHTML('beforeend','<div class="curve-help">Drag pivots · double-click to add · Alt/right-click a pivot to remove</div>');
     panel.appendChild(section);
@@ -604,11 +658,13 @@ function updateReadouts(){
   const band = bands[pi];
   const mid = 5; // shade 500 index
   const {rgb} = swatchColor(band, mid);
+  const actualL=Math.min(1,Math.max(0,globalCurves.L[mid]+band.L[mid]));
+  const actualC=Math.min(.4,Math.max(0,globalCurves.C[mid]+band.C[mid]));
   const hex = '#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
   grid.innerHTML = `
     <div>H<b>${Math.round(band.hue)}°</b></div>
-    <div>L (500)<b>${band.L[mid].toFixed(2)}</b></div>
-    <div>C (500)<b>${band.C[mid].toFixed(3)}</b></div>
+    <div>L (500)<b>${actualL.toFixed(2)}</b></div>
+    <div>C (500)<b>${actualC.toFixed(3)}</b></div>
     <div>Hex<b>${hex}</b></div>
     <div>R<b>${rgb[0]}</b></div>
     <div>G<b>${rgb[1]}</b></div>
@@ -624,6 +680,13 @@ function renderAll(skipPanel){
   renderPalette();
   if(!skipPanel) renderPanel(); else updateReadouts();
 }
+
+document.getElementById('toggleColorInfo').addEventListener('click',e=>{
+  showColorInfo=!showColorInfo;
+  document.body.classList.toggle('hide-color-info',!showColorInfo);
+  e.currentTarget.textContent=showColorInfo?'Hide color info':'Show color info';
+  e.currentTarget.setAttribute('aria-pressed',String(showColorInfo));
+});
 
 renderAll();
 </script>
