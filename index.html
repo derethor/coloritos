@@ -11,13 +11,8 @@
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
-  header{padding:20px 24px 8px;text-align:center;}
-  header h1{margin:0 0 4px;font-size:1.6rem;font-weight:700;letter-spacing:-.01em;}
-  header p{margin:0;color:var(--sub);font-size:.85rem;}
-  .header-actions{margin-top:10px;display:flex;justify-content:center;}
-
   .layout{display:flex;gap:20px;max-width:1800px;margin:20px auto;padding:0 24px 60px;align-items:flex-start;}
-  .palette{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+  .palette{flex:0 0 1000px;width:1000px;min-width:0;display:flex;flex-direction:column;gap:6px;}
 
   .band{display:flex;align-items:center;gap:10px;border-radius:10px;padding:4px;transition:background .15s;}
   .band.locked{opacity:.72;}
@@ -28,14 +23,19 @@
   .band-label:hover{color:var(--text);}
 
   .swatches{display:flex;flex:1;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px #0006;}
-  .swatch{flex:1;min-width:70px;height:82px;position:relative;cursor:crosshair;display:flex;align-items:flex-end;}
+  .swatch{flex:1;min-width:48px;height:48px;position:relative;cursor:crosshair;display:flex;align-items:flex-end;}
   .swatch:active{cursor:crosshair;}
-  .swatch-lock{position:absolute;inset:0 auto 0 0;width:24px;display:grid;place-items:center;background:#0008;color:#fff;
-    border:0;border-right:1px solid #ffffff30;z-index:2;cursor:pointer;font-size:16px;text-shadow:0 1px 2px #000;}
+  .swatch-lock{position:absolute;inset:0 auto 0 0;width:20px;display:grid;place-items:center;background:#0008;color:#fff;
+    border:0;border-right:1px solid #ffffff30;z-index:2;cursor:pointer;font-size:13px;text-shadow:0 1px 2px #000;}
   .swatch-info{position:absolute;inset:auto 3px 3px;padding:3px 4px;border-radius:4px;background:#0007;color:#fff;
-    font:600 7px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.02em;text-shadow:0 1px 1px #000;pointer-events:none;white-space:nowrap;}
-  .swatch:first-child .swatch-info{left:26px;}
+    font:600 6px/1.15 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.03em;text-shadow:0 1px 1px #000;pointer-events:none;white-space:nowrap;}
+  .swatch:first-child .swatch-info{left:22px;}
   body.hide-color-info .swatch-info{display:none;}
+  body.compact-palette .palette{gap:2px;}
+  body.compact-palette .band{padding:1px 4px;}
+  body.compact-palette .swatch{height:24px;}
+  body.compact-palette:not(.hide-color-info) .swatch{height:48px;}
+  body.compact-palette .swatch-lock{font-size:11px;}
 
   .shade-row{display:flex;gap:6px;margin-top:2px;}
   .shade-row .band-label{visibility:hidden;}
@@ -43,6 +43,7 @@
   .shade-row .swatches span{flex:1;text-align:center;font-size:.65rem;color:var(--sub);}
 
   .panel{width:340px;flex:0 0 340px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:sticky;top:20px;}
+  .panel.global-panel{width:700px;flex-basis:700px;}
   .panel h2{margin:0 0 2px;font-size:1rem;}
   .panel .sub{color:var(--sub);font-size:.75rem;margin-bottom:14px;}
   .row-between{display:flex;justify-content:space-between;align-items:center;}
@@ -80,10 +81,11 @@
   .empty{color:var(--sub);font-size:.8rem;text-align:center;padding:40px 0;}
 
   .hue-wheel-wrap{position:relative;width:min(100%,290px);aspect-ratio:1;margin:8px auto 0;border-radius:50%;
+    background-color:#ff0091;
     background:conic-gradient(from 0deg,
-      #ff0091 0deg,#ff0000 30deg,#ff4400 60deg,#df8100 90deg,
-      #86ab00 120deg,#00c400 150deg,#00cb9f 180deg,#00bdfc 210deg,
-      #009eff 240deg,#5976ff 270deg,#ba4dff 300deg,#f41ced 330deg,#ff0091 360deg);
+      #ff0091 0deg,#ff0000 30deg,#ff4400 60deg,#ff9400 90deg,
+      #c8ff00 120deg,#00ff00 150deg,#00ffc8 180deg,#00bfff 210deg,
+      #009eff 240deg,#5976ff 270deg,#ba4dff 300deg,#ff1df8 330deg,#ff0091 360deg);
     box-shadow:0 0 0 1px var(--line),inset 0 0 0 18px #0000;}
   .hue-wheel-wrap::after{content:"";position:absolute;inset:34%;border-radius:50%;background:var(--panel2);border:1px solid #ffffff28;pointer-events:none;}
   .hue-wheel{position:absolute;inset:0;width:100%;height:100%;overflow:visible;touch-action:none;z-index:1;}
@@ -93,15 +95,18 @@
   .hue-marker.locked{cursor:not-allowed;opacity:.55;}
   .hue-label{fill:#fff;font-size:7px;font-weight:600;text-anchor:middle;paint-order:stroke;stroke:#000;stroke-width:2px;stroke-linejoin:round;pointer-events:none;}
   .hue-center-label{position:absolute;inset:42%;z-index:2;display:grid;place-items:center;text-align:center;color:var(--sub);font-size:.65rem;line-height:1.2;pointer-events:none;}
+  .global-controls-grid{display:grid;grid-template-columns:minmax(260px,290px) minmax(300px,1fr);gap:18px;align-items:start;}
+  .global-controls-grid .section{margin-top:0;}
+  .global-curve-column{display:flex;flex-direction:column;gap:14px;}
+  @media (max-width:1100px){
+    .layout{overflow-x:auto;}
+    .palette{flex-basis:720px;width:720px;}
+    .panel.global-panel{width:440px;flex-basis:440px;}
+    .global-controls-grid{grid-template-columns:1fr;}
+  }
 </style>
 </head>
-<body>
-
-<header>
-  <h1>Tailwind Rainbow Editor</h1>
-  <p>Edit individual OKLCH ramps or shape the whole rainbow with global Bézier curves · lock a color to protect it from edits</p>
-  <div class="header-actions"><button class="btn" id="toggleColorInfo" type="button" aria-pressed="true">Hide color info</button></div>
-</header>
+<body class="hide-color-info compact-palette">
 
 <div class="layout">
   <div class="palette" id="palette"></div>
@@ -136,10 +141,11 @@ bands.forEach(b => b.locked = false);
 const globalCurves = { L:L_DEFAULT.slice(), C:C_DEFAULT.slice() };
 
 let selected = [];      // indices, in click order
-let clipboard = null;   // {hue, L, C}
 let opts = { smooth:false, lockOrder:true, lockEnds:false, chromaOpen:false };
 let editorMode = 'color';
-let showColorInfo = true;
+let showColorInfo = false;
+let compactPalette = true;
+let soloBand = null;
 
 // ---------- OKLCH -> sRGB ----------
 function oklchToSrgb(L, C, Hdeg){
@@ -206,6 +212,7 @@ function renderPalette(){
   root.innerHTML = '';
 
   bands.forEach((band, bi) => {
+    if(soloBand!==null && soloBand!==bi) return;
     const row = document.createElement('div');
     row.className = 'band' + (primaryIndex()===bi ? ' active' : '') + (isSelected(bi) && primaryIndex()!==bi ? ' multiselected' : '') + (band.locked?' locked':'');
 
@@ -227,7 +234,7 @@ function renderPalette(){
       const hsv=rgbToHsv(rgb);
       const hex='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
       const info=document.createElement('div'); info.className='swatch-info';
-      info.innerHTML=`HSV ${Math.round(hsv.h)}° ${Math.round(hsv.s*100)}% ${Math.round(hsv.v*100)}%<br>${hex}`;
+      info.innerHTML=`${band.name}-${shade}<br>HSV ${Math.round(hsv.h)}° ${Math.round(hsv.s*100)}% ${Math.round(hsv.v*100)}%<br>${hex}`;
       sw.appendChild(info);
 
       if(si===0){
@@ -432,6 +439,7 @@ function buildCurveSVG(getArr, setArr, opts_){
 function renderPanel(){
   const panel = document.getElementById('panel');
   panel.innerHTML='';
+  panel.classList.toggle('global-panel',editorMode==='global');
 
   const switcher=document.createElement('div'); switcher.className='editor-switch';
   switcher.innerHTML=`<button class="btn ${editorMode==='color'?'active':''}">Color</button><button class="btn ${editorMode==='global'?'active':''}">Global</button>`;
@@ -527,29 +535,12 @@ function renderPanel(){
   checks.innerHTML = `
     <label><input type="checkbox" id="chkLockOrder" ${opts.lockOrder?'checked':''}> Lock ordering</label>
     <label><input type="checkbox" id="chkLockEnds" ${opts.lockEnds?'checked':''}> Lock endpoints</label>
+    <label><input type="checkbox" id="chkSolo" ${soloBand===pi?'checked':''}> Solo color</label>
   `;
   panel.appendChild(checks);
   checks.querySelector('#chkLockOrder').onchange = e => { opts.lockOrder = e.target.checked; };
   checks.querySelector('#chkLockEnds').onchange = e => { opts.lockEnds = e.target.checked; renderPanel(); };
-
-  // copy / paste
-  const cpRow = document.createElement('div');
-  cpRow.className='row-between'; cpRow.style.marginTop='12px';
-  const copyBtn = document.createElement('button'); copyBtn.className='btn'; copyBtn.textContent='Copy curve';
-  copyBtn.onclick = () => { clipboard = { hue: band.hue, L:band.L.slice(), C: band.C.slice() }; };
-  const pasteBtn = document.createElement('button'); pasteBtn.className='btn'; pasteBtn.textContent='Paste curve';
-  pasteBtn.disabled = !clipboard;
-  pasteBtn.onclick = () => {
-    if(!clipboard) return;
-    selected.forEach(bi=>{
-      if(bands[bi].locked) return;
-      bands[bi].L = clipboard.L.slice();
-      bands[bi].C = clipboard.C.slice();
-    });
-    renderAll();
-  };
-  cpRow.appendChild(copyBtn); cpRow.appendChild(pasteBtn);
-  panel.appendChild(cpRow);
+  checks.querySelector('#chkSolo').onchange = e => { soloBand=e.target.checked?pi:null; renderAll(); };
 
   // numeric readouts (for primary swatch = 500 shade as representative)
   const numGrid = document.createElement('div'); numGrid.className='num-grid'; numGrid.id='numGrid';
@@ -585,7 +576,11 @@ function buildHueWheel(){
       const [x1,y1]=position(band.hue,51), [x2,y2]=position(band.hue,91), [lx,ly]=position(band.hue,116);
       spoke.setAttribute('x1',x1); spoke.setAttribute('y1',y1); spoke.setAttribute('x2',x2); spoke.setAttribute('y2',y2);
       dot.setAttribute('cx',x2); dot.setAttribute('cy',y2);
-      const {rgb}=oklchToSrgb(.68,.3,band.hue); dot.setAttribute('fill',`rgb(${rgb.join(',')})`);
+      const {rgb}=oklchToSrgb(.68,.3,band.hue);
+      const brightest=Math.max(rgb[0],rgb[1],rgb[2]);
+      const brightnessScale=brightest>0?255/brightest:1;
+      const brightRgb=[Math.round(rgb[0]*brightnessScale),Math.round(rgb[1]*brightnessScale),Math.round(rgb[2]*brightnessScale)];
+      dot.setAttribute('fill',`rgb(${brightRgb.join(',')})`);
       label.setAttribute('x',lx); label.setAttribute('y',ly+2.5);
       label.textContent=labelText();
       title.textContent=`${band.name}: ${Math.round(band.hue)}°${band.locked?' (locked)':''}`;
@@ -612,6 +607,25 @@ function buildHueWheel(){
 function renderGlobalPanel(panel){
   const header=document.createElement('div'); header.className='row-between';
   header.innerHTML='<h2>Global rainbow</h2>';
+  const actions=document.createElement('div'); actions.style.cssText='display:flex;gap:5px;align-items:center';
+  const compactBtn=document.createElement('button'); compactBtn.className='btn tiny';
+  compactBtn.textContent=compactPalette?'Compact: on':'Compact: off';
+  compactBtn.setAttribute('aria-pressed',String(compactPalette));
+  compactBtn.onclick=()=>{
+    compactPalette=!compactPalette;
+    document.body.classList.toggle('compact-palette',compactPalette);
+    compactBtn.textContent=compactPalette?'Compact: on':'Compact: off';
+    compactBtn.setAttribute('aria-pressed',String(compactPalette));
+  };
+  const infoBtn=document.createElement('button'); infoBtn.className='btn tiny';
+  infoBtn.textContent=showColorInfo?'Hide info':'Show info';
+  infoBtn.setAttribute('aria-pressed',String(showColorInfo));
+  infoBtn.onclick=()=>{
+    showColorInfo=!showColorInfo;
+    document.body.classList.toggle('hide-color-info',!showColorInfo);
+    infoBtn.textContent=showColorInfo?'Hide info':'Show info';
+    infoBtn.setAttribute('aria-pressed',String(showColorInfo));
+  };
   const reset=document.createElement('button'); reset.className='btn'; reset.textContent='Reset global';
   reset.onclick=()=>{
     const beforeL=globalCurves.L.slice(), beforeC=globalCurves.C.slice();
@@ -621,16 +635,19 @@ function renderGlobalPanel(panel){
     }});
     renderAll();
   };
-  header.appendChild(reset); panel.appendChild(header);
+  actions.appendChild(compactBtn); actions.appendChild(infoBtn); actions.appendChild(reset);
+  header.appendChild(actions); panel.appendChild(header);
   const sub=document.createElement('div'); sub.className='sub';
   sub.textContent=`Shapes all ${bands.filter(b=>!b.locked).length} unlocked colors. Locked colors are protected.`;
   panel.appendChild(sub);
 
+  const controlsGrid=document.createElement('div'); controlsGrid.className='global-controls-grid';
+  const curveColumn=document.createElement('div'); curveColumn.className='global-curve-column';
   const hueSection=document.createElement('div'); hueSection.className='section';
   hueSection.innerHTML='<div class="section-title">Hue distribution <span>360°</span></div>';
   hueSection.appendChild(buildHueWheel());
   hueSection.insertAdjacentHTML('beforeend','<div class="curve-help">Drag a labeled marker around the wheel to adjust its hue. Locked colors stay fixed.</div>');
-  panel.appendChild(hueSection);
+  controlsGrid.appendChild(hueSection); controlsGrid.appendChild(curveColumn); panel.appendChild(controlsGrid);
 
   const addCurve=(title,key,norm,desc)=>{
     const section=document.createElement('div'); section.className='section';
@@ -641,7 +658,7 @@ function renderGlobalPanel(panel){
       {small:false,norm,desc,targets:()=>['global'],protectLocked:key}
     ));
     section.insertAdjacentHTML('beforeend','<div class="curve-help">Drag pivots · double-click to add · Alt/right-click a pivot to remove</div>');
-    panel.appendChild(section);
+    curveColumn.appendChild(section);
   };
   addCurve('Lightness','L',1,true);
   addCurve('Saturation (chroma)','C',.4,false);
@@ -680,13 +697,6 @@ function renderAll(skipPanel){
   renderPalette();
   if(!skipPanel) renderPanel(); else updateReadouts();
 }
-
-document.getElementById('toggleColorInfo').addEventListener('click',e=>{
-  showColorInfo=!showColorInfo;
-  document.body.classList.toggle('hide-color-info',!showColorInfo);
-  e.currentTarget.textContent=showColorInfo?'Hide color info':'Show color info';
-  e.currentTarget.setAttribute('aria-pressed',String(showColorInfo));
-});
 
 renderAll();
 </script>
