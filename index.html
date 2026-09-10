@@ -11,7 +11,7 @@
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
-  .layout{display:flex;gap:20px;max-width:1800px;margin:20px auto;padding:0 24px 60px;align-items:flex-start;}
+  .layout{display:flex;flex-wrap:wrap;gap:20px;max-width:1800px;margin:20px auto;padding:0 24px 60px;align-items:flex-start;}
   .palette{flex:0 0 1000px;width:1000px;min-width:0;display:flex;flex-direction:column;gap:6px;}
 
   .band{display:flex;align-items:center;gap:10px;border-radius:10px;padding:4px;transition:background .15s;}
@@ -44,6 +44,7 @@
 
   .panel{width:340px;flex:0 0 340px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:sticky;top:20px;}
   .panel.global-panel{width:700px;flex-basis:700px;}
+  .panel.color-panel{width:700px;flex-basis:700px;}
   .panel h2{margin:0 0 2px;font-size:1rem;}
   .panel .sub{color:var(--sub);font-size:.75rem;margin-bottom:14px;}
   .row-between{display:flex;justify-content:space-between;align-items:center;}
@@ -98,11 +99,15 @@
   .global-controls-grid{display:grid;grid-template-columns:minmax(260px,290px) minmax(300px,1fr);gap:18px;align-items:start;}
   .global-controls-grid .section{margin-top:0;}
   .global-curve-column{display:flex;flex-direction:column;gap:14px;}
+  .color-curves-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+  .color-curves-grid .section{margin-top:16px;min-width:0;}
   @media (max-width:1100px){
     .layout{overflow-x:auto;}
     .palette{flex-basis:720px;width:720px;}
     .panel.global-panel{width:440px;flex-basis:440px;}
+    .panel.color-panel{width:440px;flex-basis:440px;}
     .global-controls-grid{grid-template-columns:1fr;}
+    .color-curves-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -141,7 +146,7 @@ bands.forEach(b => b.locked = false);
 const globalCurves = { L:L_DEFAULT.slice(), C:C_DEFAULT.slice() };
 
 let selected = [];      // indices, in click order
-let opts = { smooth:false, lockOrder:true, lockEnds:false, chromaOpen:false };
+let opts = { smooth:false, lockOrder:true, lockEnds:false };
 let editorMode = 'color';
 let showColorInfo = false;
 let compactPalette = true;
@@ -440,6 +445,7 @@ function renderPanel(){
   const panel = document.getElementById('panel');
   panel.innerHTML='';
   panel.classList.toggle('global-panel',editorMode==='global');
+  panel.classList.toggle('color-panel',editorMode==='color' && selected.length>0);
 
   const switcher=document.createElement('div'); switcher.className='editor-switch';
   switcher.innerHTML=`<button class="btn ${editorMode==='color'?'active':''}">Color</button><button class="btn ${editorMode==='global'?'active':''}">Global</button>`;
@@ -494,6 +500,9 @@ function renderPanel(){
   hueSection.appendChild(hueSlider);
   panel.appendChild(hueSection);
 
+  const curvesGrid=document.createElement('div'); curvesGrid.className='color-curves-grid';
+  panel.appendChild(curvesGrid);
+
   // Per-color curves are zero-based adjustments over the global ramp.
   const lSection = document.createElement('div'); lSection.className='section';
   lSection.innerHTML = `<div class="section-title"><span>Lightness adjustment · ±25%</span><button class="btn tiny" type="button">Reset</button></div>`;
@@ -507,28 +516,25 @@ function renderPanel(){
     {small:false,min:-.25,max:.25,desc:false}
   ));
   lSection.insertAdjacentHTML('beforeend','<div class="curve-help">Zero means “use global” · drag pivots · double-click to add · Alt/right-click to remove</div>');
-  panel.appendChild(lSection);
+  curvesGrid.appendChild(lSection);
 
-  // CHROMA curve (collapsible)
+  // SATURATION curve
   const cSection = document.createElement('div'); cSection.className='section';
   const cTitle = document.createElement('div'); cTitle.className='section-title';
-  cTitle.innerHTML = `<span>Saturation adjustment · ±0.15</span><span><button class="btn tiny" type="button">Reset</button> <span class="toggle-link">${opts.chromaOpen?'Collapse':'Expand'}</span></span>`;
+  cTitle.innerHTML = `<span>Saturation adjustment · ±0.15</span><button class="btn tiny" type="button">Reset</button>`;
   cTitle.querySelector('button').onclick = () => {
     selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].C=SHADES.map(()=>0); });
     renderAll();
   };
-  cTitle.querySelector('.toggle-link').onclick = () => { opts.chromaOpen = !opts.chromaOpen; renderPanel(); };
   cSection.appendChild(cTitle);
-  if(opts.chromaOpen){
-    const cSvg = buildCurveSVG(
-      ()=>band.C,
-      (bi)=>bands[bi].locked?null:bands[bi].C,
-      {small:true,min:-.15,max:.15,desc:false}
-    );
-    cSection.appendChild(cSvg);
-    cSection.insertAdjacentHTML('beforeend','<div class="curve-help">Drag pivots · double-click to add · Alt/right-click a pivot to remove</div>');
-  }
-  panel.appendChild(cSection);
+  const cSvg = buildCurveSVG(
+    ()=>band.C,
+    (bi)=>bands[bi].locked?null:bands[bi].C,
+    {small:false,min:-.15,max:.15,desc:false}
+  );
+  cSection.appendChild(cSvg);
+  cSection.insertAdjacentHTML('beforeend','<div class="curve-help">Zero means “use global” · drag pivots · double-click to add · Alt/right-click to remove</div>');
+  curvesGrid.appendChild(cSection);
 
   // checkboxes
   const checks = document.createElement('div'); checks.className='checks';
