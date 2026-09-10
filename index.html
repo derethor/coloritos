@@ -75,9 +75,9 @@
 
   .hue-wheel-wrap{position:relative;width:min(100%,290px);aspect-ratio:1;margin:8px auto 0;border-radius:50%;
     background:conic-gradient(from 0deg,
-      #ea7ca1 0deg,#ef806f 30deg,#e38d3d 60deg,#c7a01e 90deg,
-      #9ab140 120deg,#5bbd74 150deg,#00c0a8 180deg,#00bbd5 210deg,
-      #3faff3 240deg,#839ffc 270deg,#b28fef 300deg,#d582ce 330deg,#ea7ca1 360deg);
+      #ff0091 0deg,#ff0000 30deg,#ff4400 60deg,#df8100 90deg,
+      #86ab00 120deg,#00c400 150deg,#00cb9f 180deg,#00bdfc 210deg,
+      #009eff 240deg,#5976ff 270deg,#ba4dff 300deg,#f41ced 330deg,#ff0091 360deg);
     box-shadow:0 0 0 1px var(--line),inset 0 0 0 18px #0000;}
   .hue-wheel-wrap::after{content:"";position:absolute;inset:34%;border-radius:50%;background:var(--panel2);border:1px solid #ffffff28;pointer-events:none;}
   .hue-wheel{position:absolute;inset:0;width:100%;height:100%;overflow:visible;touch-action:none;z-index:1;}
@@ -530,7 +530,7 @@ function buildHueWheel(){
       const [x1,y1]=position(band.hue,51), [x2,y2]=position(band.hue,91), [lx,ly]=position(band.hue,116);
       spoke.setAttribute('x1',x1); spoke.setAttribute('y1',y1); spoke.setAttribute('x2',x2); spoke.setAttribute('y2',y2);
       dot.setAttribute('cx',x2); dot.setAttribute('cy',y2);
-      const {rgb}=swatchColor(band,5); dot.setAttribute('fill',`rgb(${rgb.join(',')})`);
+      const {rgb}=oklchToSrgb(.68,.3,band.hue); dot.setAttribute('fill',`rgb(${rgb.join(',')})`);
       label.setAttribute('x',lx); label.setAttribute('y',ly+2.5);
       label.textContent=labelText();
       title.textContent=`${band.name}: ${Math.round(band.hue)}°${band.locked?' (locked)':''}`;
