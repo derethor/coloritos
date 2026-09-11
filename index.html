@@ -52,7 +52,9 @@
   .btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:5px 10px;font-size:.72rem;cursor:pointer;}
   .btn:hover{background:#242424;}
   .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
   .btn.tiny{padding:2px 7px;font-size:.62rem;line-height:1.2;text-transform:none;letter-spacing:0;}
+  .row-actions{display:flex;gap:5px;align-items:center;}
 
   .section{margin-top:16px;}
   .section-title{font-size:.68rem;letter-spacing:.08em;color:var(--sub);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
@@ -107,6 +109,7 @@
   .row-import{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:12px;}
   .row-import textarea{min-height:54px;resize:vertical;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:7px 8px;font:10px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;}
   .row-import .import-status{grid-column:1/-1;color:var(--sub);font-size:.68rem;}
+  .curve-transfer-status{color:var(--accent);font-size:.68rem;margin-top:-8px;}
   @media (max-width:1100px){
     .layout{overflow-x:auto;}
     .palette{flex-basis:720px;width:720px;}
@@ -174,30 +177,14 @@ function tailwindRamp(name){
   });
 }
 
-function deriveGlobalDefaults(){
-  const definitions=COLOR_DEFS.map(([name,,chromaScale=1])=>({ramp:tailwindRamp(name),chromaScale}));
-  const L=SHADES.map((_,i)=>definitions.reduce((sum,item)=>sum+item.ramp[i][0],0)/definitions.length);
-  // Least-squares solution for C when a row contributes globalC × chromaScale.
-  const C=SHADES.map((_,i)=>{
-    const numerator=definitions.reduce((sum,item)=>sum+item.chromaScale*item.ramp[i][1],0);
-    const denominator=definitions.reduce((sum,item)=>sum+item.chromaScale*item.chromaScale,0);
-    return numerator/denominator;
-  });
-  return {L,C};
-}
-
-const optimizedDefaults=deriveGlobalDefaults();
-const L_DEFAULT=optimizedDefaults.L;
-const C_DEFAULT=optimizedDefaults.C;
-
-function makeBand(name, hue, chromaScale=1){
+function makeBand(name){
   const ramp=tailwindRamp(name);
   const H=ramp.map(point=>point[2]);
-  const L=ramp.map((point,i)=>point[0]-L_DEFAULT[i]);
-  const C=ramp.map((point,i)=>point[1]-C_DEFAULT[i]*chromaScale);
-  hue=H[5];
+  const L=ramp.map(point=>point[0]);
+  const C=ramp.map(point=>point[1]);
+  const hue=H[5];
   return {
-    name, hue, chromaScale, H, L, C,
+    name, hue, H, L, C,
     default: { hue, H:H.slice(), L: L.slice(), C: C.slice() }
   };
 }
@@ -205,7 +192,7 @@ function makeBand(name, hue, chromaScale=1){
 const bands = COLOR_DEFS.map(def => makeBand(...def));
 bands.forEach(b => b.locked = false);
 
-const globalCurves = { L:L_DEFAULT.slice(), C:C_DEFAULT.slice() };
+const globalCurves = { L:SHADES.map(()=>0), C:SHADES.map(()=>0) };
 
 let selected = [];      // indices, in click order
 let opts = { smooth:false, lockOrder:true, lockEnds:false };
@@ -215,6 +202,9 @@ let compactPalette = true;
 let soloBand = null;
 let rowImportText = '';
 let rowImportStatus = '';
+let curveClipboard = null;
+let curveTransferStatus = '';
+let resampleStatus = '';
 
 // ---------- OKLCH -> sRGB ----------
 function oklchToSrgb(L, C, Hdeg){
@@ -263,8 +253,9 @@ function parseHexColors(text){
 }
 
 function swatchOklch(band,i){
-  const L=Math.min(1,Math.max(0,globalCurves.L[i]+band.L[i]));
-  const C=Math.min(.4,Math.max(0,globalCurves.C[i]*band.chromaScale+band.C[i]));
+  const applyGlobal=!band.locked;
+  const L=Math.min(1,Math.max(0,band.L[i]+(applyGlobal?globalCurves.L[i]:0)));
+  const C=Math.min(.4,Math.max(0,band.C[i]+(applyGlobal?globalCurves.C[i]:0)));
   return {L,C,H:band.H[i]};
 }
 
@@ -286,6 +277,32 @@ function selectBand(i, additive){
   }
   editorMode = 'color';
   renderAll();
+}
+
+// Build periodic L(hue, shade) and C(hue, shade) surfaces from the locked rows.
+// At each shade, values are interpolated along the neighboring arc on the hue wheel.
+function resampleUnlockedCurves(){
+  const anchors=bands.filter(b=>b.locked).slice().sort((a,b)=>a.hue-b.hue);
+  if(!anchors.length) return {updated:0,error:'Lock at least one color row to use as an interpolation anchor.'};
+
+  bands.forEach(b=>{ if(!b.locked){
+    if(anchors.length===1){
+      b.L=anchors[0].L.slice();
+      b.C=anchors[0].C.slice();
+      return;
+    }
+
+    let upperIndex=anchors.findIndex(anchor=>anchor.hue>=b.hue);
+    if(upperIndex<0) upperIndex=0;
+    const upper=anchors[upperIndex];
+    const lower=anchors[(upperIndex-1+anchors.length)%anchors.length];
+    const span=(upper.hue-lower.hue+360)%360;
+    const offset=(b.hue-lower.hue+360)%360;
+    const t=span===0?0:Math.min(1,Math.max(0,offset/span));
+    b.L=SHADES.map((_,i)=>lower.L[i]+(upper.L[i]-lower.L[i])*t);
+    b.C=SHADES.map((_,i)=>lower.C[i]+(upper.C[i]-lower.C[i])*t);
+  }});
+  return {updated:bands.length-anchors.length,anchors:anchors.length};
 }
 
 // ---------- palette rendering ----------
@@ -357,8 +374,8 @@ function startSwatchDrag(ev, bi, si){
 
   function move(e){
     const dx = e.clientX - startX, dy = e.clientY - startY;
-    band.C[si] = Math.min(0.4, Math.max(-0.4, startC + dx*0.0012));
-    band.L[si] = Math.min(1, Math.max(-1, startL - dy*0.002));
+    band.C[si] = Math.min(0.4, Math.max(0, startC + dx*0.0012));
+    band.L[si] = Math.min(1, Math.max(0, startL - dy*0.002));
     renderAll();
   }
   function up(){
@@ -424,7 +441,6 @@ function buildCurveSVG(getArr, setArr, opts_){
 
   function commit(previous){
     const next=sampledValues();
-    const globalBefore=opts_.protectLocked?globalCurves[opts_.protectLocked].slice():null;
     const targets=opts_.targets?opts_.targets():selected;
     targets.forEach(target=>{
       const arr=setArr(target); if(!arr) return;
@@ -433,13 +449,6 @@ function buildCurveSVG(getArr, setArr, opts_){
         for(let i=1;i<n;i++) arr[i]=Math.min(arr[i],arr[i-1]);
       }
     });
-    if(globalBefore){
-      const key=opts_.protectLocked;
-      bands.forEach(b=>{ if(b.locked) for(let i=0;i<n;i++){
-        const scale=key==='C'?b.chromaScale:1;
-        b[key][i]-=(globalCurves[key][i]-globalBefore[i])*scale;
-      }});
-    }
     renderPaletteOnly(); updateReadouts();
   }
 
@@ -547,6 +556,33 @@ function renderPanel(){
   header.className='row-between';
   const h2 = document.createElement('h2');
   h2.textContent = multi ? `${selected.length} bands selected` : band.name;
+  const actions = document.createElement('div');
+  actions.className = 'row-actions';
+  const copyBtn = document.createElement('button');
+  copyBtn.className='btn'; copyBtn.textContent='Copy curves';
+  copyBtn.title=`Copy ${band.name}'s lightness and chroma curves`;
+  copyBtn.onclick=()=>{
+    curveClipboard={source:band.name,L:band.L.slice(),C:band.C.slice()};
+    curveTransferStatus=`Copied lightness and chroma curves from ${band.name}.`;
+    renderPanel();
+  };
+  const pasteBtn = document.createElement('button');
+  pasteBtn.className='btn'; pasteBtn.textContent='Paste curves';
+  pasteBtn.disabled=!curveClipboard;
+  pasteBtn.title=curveClipboard?`Paste curves from ${curveClipboard.source} into the selected unlocked rows`:'Copy curves from a row first';
+  pasteBtn.onclick=()=>{
+    if(!curveClipboard) return;
+    const targets=selected.filter(bi=>!bands[bi].locked);
+    targets.forEach(bi=>{
+      bands[bi].L=curveClipboard.L.slice();
+      bands[bi].C=curveClipboard.C.slice();
+    });
+    const skipped=selected.length-targets.length;
+    curveTransferStatus=targets.length
+      ? `Pasted curves from ${curveClipboard.source} into ${targets.map(bi=>bands[bi].name).join(', ')}${skipped?`; skipped ${skipped} locked row${skipped===1?'':'s'}`:''}.`
+      : 'No curves pasted; unlock at least one selected row first.';
+    renderAll();
+  };
   const resetBtn = document.createElement('button');
   resetBtn.className='btn'; resetBtn.textContent='Reset';
   resetBtn.onclick = () => {
@@ -557,13 +593,21 @@ function renderPanel(){
     });
     renderAll();
   };
-  header.appendChild(h2); header.appendChild(resetBtn);
+  actions.appendChild(copyBtn); actions.appendChild(pasteBtn); actions.appendChild(resetBtn);
+  header.appendChild(h2); header.appendChild(actions);
   panel.appendChild(header);
 
   const sub = document.createElement('div');
   sub.className='sub';
   sub.textContent = multi ? bands.filter((_,i)=>isSelected(i)).map(b=>b.name).join(', ') : `OKLCH ramp, shades 50 → 950`;
   panel.appendChild(sub);
+
+  if(curveTransferStatus){
+    const transferStatus=document.createElement('div');
+    transferStatus.className='curve-transfer-status';
+    transferStatus.textContent=curveTransferStatus;
+    panel.appendChild(transferStatus);
+  }
 
   const importer=document.createElement('div'); importer.className='row-import';
   const importInput=document.createElement('textarea');
@@ -581,8 +625,8 @@ function renderPanel(){
     if(band.locked){ rowImportStatus=`Unlock ${band.name} before importing.`; importStatus.textContent=rowImportStatus; return; }
     const converted=colors.map(srgbToOklch);
     band.H=converted.map(color=>color.H);
-    band.L=converted.map((color,i)=>color.L-globalCurves.L[i]);
-    band.C=converted.map((color,i)=>color.C-globalCurves.C[i]*band.chromaScale);
+    band.L=converted.map(color=>color.L);
+    band.C=converted.map(color=>color.C);
     band.hue=band.H[5];
     rowImportStatus=`Imported ${colors.length} colors into ${band.name}, shades 50 → 950.`;
     renderAll();
@@ -611,39 +655,37 @@ function renderPanel(){
   const curvesGrid=document.createElement('div'); curvesGrid.className='color-curves-grid';
   panel.appendChild(curvesGrid);
 
-  // Per-color curves are zero-based adjustments over the global ramp.
+  // Per-color curves own the absolute row values.
   const lSection = document.createElement('div'); lSection.className='section';
-  const lLimit=Math.max(.25,...band.L.map(Math.abs));
-  lSection.innerHTML = `<div class="section-title"><span>OKLCH lightness (L) · ±${lLimit.toFixed(2)}</span><button class="btn tiny" type="button">Reset</button></div>`;
+  lSection.innerHTML = `<div class="section-title"><span>OKLCH lightness (L) · 0–1</span><button class="btn tiny" type="button">Reset</button></div>`;
   lSection.querySelector('button').onclick=()=>{
-    selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].L=SHADES.map(()=>0); });
+    selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].L=bands[bi].default.L.slice(); });
     renderAll();
   };
   lSection.appendChild(buildCurveSVG(
     ()=>band.L,
     bi=>bands[bi].locked?null:bands[bi].L,
-    {small:false,min:-lLimit,max:lLimit,desc:false}
+    {small:false,min:0,max:1,desc:true}
   ));
-  lSection.insertAdjacentHTML('beforeend','<div class="curve-help">Zero means “use global” · drag pivots · double-click to add · Alt/right-click to remove</div>');
+  lSection.insertAdjacentHTML('beforeend','<div class="curve-help">Absolute row values · drag pivots · double-click to add · Alt/right-click to remove</div>');
   curvesGrid.appendChild(lSection);
 
   // OKLCH CHROMA curve
   const cSection = document.createElement('div'); cSection.className='section';
   const cTitle = document.createElement('div'); cTitle.className='section-title';
-  const cLimit=Math.max(.15,...band.C.map(Math.abs));
-  cTitle.innerHTML = `<span>OKLCH chroma (C) · ±${cLimit.toFixed(2)}</span><button class="btn tiny" type="button">Reset</button>`;
+  cTitle.innerHTML = `<span>OKLCH chroma (C) · 0–0.4</span><button class="btn tiny" type="button">Reset</button>`;
   cTitle.querySelector('button').onclick = () => {
-    selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].C=SHADES.map(()=>0); });
+    selected.forEach(bi=>{ if(!bands[bi].locked) bands[bi].C=bands[bi].default.C.slice(); });
     renderAll();
   };
   cSection.appendChild(cTitle);
   const cSvg = buildCurveSVG(
     ()=>band.C,
     (bi)=>bands[bi].locked?null:bands[bi].C,
-    {small:false,min:-cLimit,max:cLimit,desc:false}
+    {small:false,min:0,max:.4,desc:false}
   );
   cSection.appendChild(cSvg);
-  cSection.insertAdjacentHTML('beforeend','<div class="curve-help">Zero means “use global” · drag pivots · double-click to add · Alt/right-click to remove</div>');
+  cSection.insertAdjacentHTML('beforeend','<div class="curve-help">Absolute row values · drag pivots · double-click to add · Alt/right-click to remove</div>');
   curvesGrid.appendChild(cSection);
 
   // checkboxes
@@ -745,21 +787,36 @@ function renderGlobalPanel(panel){
     infoBtn.textContent=showColorInfo?'Hide info':'Show info';
     infoBtn.setAttribute('aria-pressed',String(showColorInfo));
   };
-  const reset=document.createElement('button'); reset.className='btn'; reset.textContent='Reset global';
+  const reset=document.createElement('button'); reset.className='btn'; reset.textContent='Reset adjustments';
   reset.onclick=()=>{
-    const beforeL=globalCurves.L.slice(), beforeC=globalCurves.C.slice();
-    globalCurves.L=L_DEFAULT.slice(); globalCurves.C=C_DEFAULT.slice();
-    bands.forEach(b=>{ if(b.locked) for(let i=0;i<SHADES.length;i++){
-      b.L[i]-=globalCurves.L[i]-beforeL[i];
-      b.C[i]-=(globalCurves.C[i]-beforeC[i])*b.chromaScale;
-    }});
+    globalCurves.L=SHADES.map(()=>0); globalCurves.C=SHADES.map(()=>0);
     renderAll();
   };
-  actions.appendChild(compactBtn); actions.appendChild(infoBtn); actions.appendChild(reset);
+  const resample=document.createElement('button'); resample.className='btn'; resample.textContent='Resample unlocked';
+  resample.title='Interpolate every unlocked L/C curve from the nearest locked rows around the hue wheel';
+  resample.onclick=()=>{
+    const result=resampleUnlockedCurves();
+    resampleStatus=result.error||`Resampled ${result.updated} unlocked rows from ${result.anchors} locked hue anchor${result.anchors===1?'':'s'}.`;
+    renderAll();
+  };
+  const apply=document.createElement('button'); apply.className='btn'; apply.textContent='Apply curves';
+  apply.onclick=()=>{
+    bands.forEach(b=>{ if(!b.locked) for(let i=0;i<SHADES.length;i++){
+      b.L[i]=Math.min(1,Math.max(0,b.L[i]+globalCurves.L[i]));
+      b.C[i]=Math.min(.4,Math.max(0,b.C[i]+globalCurves.C[i]));
+    }});
+    globalCurves.L=SHADES.map(()=>0); globalCurves.C=SHADES.map(()=>0);
+    renderAll();
+  };
+  actions.appendChild(compactBtn); actions.appendChild(infoBtn); actions.appendChild(resample); actions.appendChild(reset); actions.appendChild(apply);
   header.appendChild(actions); panel.appendChild(header);
   const sub=document.createElement('div'); sub.className='sub';
-  sub.textContent=`Shapes all ${bands.filter(b=>!b.locked).length} unlocked colors. Locked colors are protected.`;
+  sub.textContent=`Preview additive L/C adjustments on ${bands.filter(b=>!b.locked).length} unlocked rows, then apply them to bake the curves into those rows.`;
   panel.appendChild(sub);
+  if(resampleStatus){
+    const status=document.createElement('div'); status.className='curve-transfer-status'; status.textContent=resampleStatus;
+    panel.appendChild(status);
+  }
 
   const controlsGrid=document.createElement('div'); controlsGrid.className='global-controls-grid';
   const curveColumn=document.createElement('div'); curveColumn.className='global-curve-column';
@@ -769,22 +826,22 @@ function renderGlobalPanel(panel){
   hueSection.insertAdjacentHTML('beforeend','<div class="curve-help">Drag a labeled marker around the wheel to adjust its hue. Locked colors stay fixed.</div>');
   controlsGrid.appendChild(hueSection); controlsGrid.appendChild(curveColumn); panel.appendChild(controlsGrid);
 
-  const addCurve=(title,key,norm,desc)=>{
+  const addCurve=(title,key,min,max)=>{
     const section=document.createElement('div'); section.className='section';
     section.innerHTML=`<div class="section-title">${title}<span>Bézier</span></div>`;
     section.appendChild(buildCurveSVG(
       ()=>globalCurves[key],
       target=>target==='global'?globalCurves[key]:null,
-      {small:false,norm,desc,targets:()=>['global'],protectLocked:key}
+      {small:false,min,max,desc:false,targets:()=>['global']}
     ));
     section.insertAdjacentHTML('beforeend','<div class="curve-help">Drag pivots · double-click to add · Alt/right-click a pivot to remove</div>');
     curveColumn.appendChild(section);
   };
-  addCurve('OKLCH lightness (L)','L',1,true);
-  addCurve('OKLCH chroma (C)','C',.4,false);
+  addCurve('Global L adjustment','L',-.25,.25);
+  addCurve('Global C adjustment','C',-.15,.15);
 
   const note=document.createElement('div'); note.className='sub'; note.style.marginTop='14px';
-  note.textContent='Drag a knot to reshape the smooth cubic Bézier curve. Changes are applied as deltas, preserving each color’s individual character.';
+  note.textContent='Zero leaves rows unchanged. Apply curves bakes the preview into every unlocked row and resets both global adjustments to zero.';
   panel.appendChild(note);
 }
 
