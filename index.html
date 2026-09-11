@@ -303,7 +303,7 @@ function renderPalette(){
       const {L,C,H}=swatchOklch(band,si);
       const hex='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
       const info=document.createElement('div'); info.className='swatch-info';
-      info.innerHTML=`${band.name}-${shade}<br>L&nbsp; ${(L*100).toFixed(1)}%<br>C&nbsp; ${C.toFixed(3)}<br>H&nbsp; ${H.toFixed(1)}°<br>${hex}`;
+      info.innerHTML=`${band.name}-${shade}<br>L&nbsp; ${(L*100).toFixed(1)}%<br>C&nbsp; ${C.toFixed(3)}<br>H&nbsp; ${H.toFixed(3)}°<br>${hex}`;
       sw.appendChild(info);
 
       if(si===0){
@@ -581,7 +581,7 @@ function renderPanel(){
   const hueSection = document.createElement('div'); hueSection.className='section';
   hueSection.innerHTML = `<div class="section-title">OKLCH hue (H) <span id="hueVal"></span></div><div class="hue-track"></div>`;
   const hueSlider = document.createElement('input');
-  hueSlider.type='range'; hueSlider.min=0; hueSlider.max=360; hueSlider.step=1; hueSlider.value=band.hue;
+  hueSlider.type='range'; hueSlider.min=0; hueSlider.max=360; hueSlider.step=.001; hueSlider.value=band.hue;
   hueSlider.oninput = () => {
     const val = Number(hueSlider.value);
     const delta = val - band.hue;
@@ -589,7 +589,7 @@ function renderPanel(){
       bands[bi].hue=(bands[bi].hue+delta+360)%360;
       bands[bi].H=bands[bi].H.map(h=>(h+delta+360)%360);
     }});
-    document.getElementById('hueVal').textContent = Math.round(val)+'°';
+    document.getElementById('hueVal').textContent = val.toFixed(3)+'°';
     renderPaletteOnly(); updateReadouts();
   };
   hueSection.appendChild(hueSlider);
@@ -649,7 +649,7 @@ function renderPanel(){
   const numGrid = document.createElement('div'); numGrid.className='num-grid'; numGrid.id='numGrid';
   panel.appendChild(numGrid);
 
-  document.getElementById('hueVal').textContent = Math.round(band.hue)+'°';
+  document.getElementById('hueVal').textContent = band.hue.toFixed(3)+'°';
   updateReadouts();
 }
 
@@ -671,7 +671,7 @@ function buildHueWheel(){
     dot.setAttribute('class','hue-marker'+(band.locked?' locked':''));
     dot.setAttribute('stroke','#fff'); dot.setAttribute('stroke-width','1.5');
     const label=document.createElementNS(svg.namespaceURI,'text'); label.setAttribute('class','hue-label');
-    function labelText(){ return `${band.locked?'🔒 ':''}${band.name} ${Math.round(band.hue)}°`; }
+    function labelText(){ return `${band.locked?'🔒 ':''}${band.name} ${band.hue.toFixed(3)}°`; }
     label.textContent=labelText();
     const title=document.createElementNS(svg.namespaceURI,'title'); dot.appendChild(title);
 
@@ -686,7 +686,7 @@ function buildHueWheel(){
       dot.setAttribute('fill',`rgb(${brightRgb.join(',')})`);
       label.setAttribute('x',lx); label.setAttribute('y',ly+2.5);
       label.textContent=labelText();
-      title.textContent=`${band.name}: ${Math.round(band.hue)}°${band.locked?' (locked)':''}`;
+      title.textContent=`${band.name}: ${band.hue.toFixed(3)}°${band.locked?' (locked)':''}`;
     }
 
     if(!band.locked) dot.addEventListener('pointerdown',ev=>{
@@ -785,13 +785,13 @@ function updateReadouts(){
   const {L:actualL,C:actualC,H:actualH}=swatchOklch(band,mid);
   const hex = '#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
   grid.innerHTML = `
-    <div>H (500)<b>${actualH.toFixed(1)}°</b></div>
+    <div>H (500)<b>${actualH.toFixed(3)}°</b></div>
     <div>L (500)<b>${actualL.toFixed(2)}</b></div>
     <div>C (500)<b>${actualC.toFixed(3)}</b></div>
     <div>Hex<b>${hex}</b></div>
   `;
   const hueVal = document.getElementById('hueVal');
-  if(hueVal) hueVal.textContent = Math.round(band.hue)+'°';
+  if(hueVal) hueVal.textContent = band.hue.toFixed(3)+'°';
   const hueSlider = document.querySelector('.section input[type=range]');
   if(hueSlider) hueSlider.value = band.hue;
 }
