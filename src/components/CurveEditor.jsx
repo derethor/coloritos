@@ -5,7 +5,7 @@ import { controls, fitPivots, sampledValues } from '../lib/curveMath.js';
 
 const N = SHADES.length;
 
-export default function CurveEditor({ getArr, setArr, min = 0, max = 1, small = false, desc = false, targets }) {
+export default function CurveEditor({ getArr, setArr, min = 0, max = 1, small = false, desc = false, targets, syncKey }) {
   const { store, render } = usePaletteStore();
   const svgRef = useRef(null);
 
@@ -22,9 +22,11 @@ export default function CurveEditor({ getArr, setArr, min = 0, max = 1, small = 
   const arr = getArr();
   const [pivots, setPivotsState] = useState(() => fitPivots(arr, normalize, tolerance));
   const prevArrRef = useRef(arr);
+  const prevSyncKey = useRef(syncKey);
   let currentPivots = pivots;
-  if (prevArrRef.current !== arr) {
+  if (prevArrRef.current !== arr || prevSyncKey.current !== syncKey) {
     prevArrRef.current = arr;
+    prevSyncKey.current = syncKey;
     currentPivots = fitPivots(arr, normalize, tolerance);
     setPivotsState(currentPivots);
   }

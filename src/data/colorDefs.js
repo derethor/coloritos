@@ -68,6 +68,7 @@ export function makeBand(name) {
     L,
     C,
     locked: false,
+    curveRevision: 0,
     default: { hue, H: H.slice(), L: L.slice(), C: C.slice() },
   };
 }

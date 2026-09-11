@@ -81,7 +81,35 @@ export default function Palette() {
                       render();
                     }}
                   >
-                    {band.name}
+                    <span>{band.name}</span>
+                    <button
+                      className={`band-control band-lock ${band.locked ? 'active' : ''}`}
+                      title={band.locked ? `Unlock ${band.name}` : `Lock ${band.name}`}
+                      aria-label={band.locked ? `Unlock ${band.name}` : `Lock ${band.name}`}
+                      aria-pressed={band.locked}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        band.locked = !band.locked;
+                        render();
+                      }}
+                    >
+                      <LockIcon locked={band.locked} />
+                    </button>
+                    <button
+                      className={`band-control band-solo ${store.soloBand === bi ? 'active' : ''}`}
+                      title={store.soloBand === bi ? `Show all color rows` : `Solo ${band.name}`}
+                      aria-label={store.soloBand === bi ? `Show all color rows` : `Solo ${band.name}`}
+                      aria-pressed={store.soloBand === bi}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        store.soloBand = store.soloBand === bi ? null : bi;
+                        render();
+                      }}
+                    >
+                      <SoloIcon />
+                    </button>
                   </div>
                   <div className="swatches">
                     {SHADES.map((shade, si) => (
@@ -132,6 +160,7 @@ function Swatch({ bi, si, shade, band }) {
         dy = e.clientY - startY;
       band.C[si] = Math.min(0.4, Math.max(0, startC + dx * 0.0012));
       band.L[si] = Math.min(1, Math.max(0, startL - dy * 0.002));
+      band.curveRevision++;
       render();
     }
     function up() {
@@ -158,37 +187,6 @@ function Swatch({ bi, si, shade, band }) {
         H&nbsp; {H.toFixed(3)}°<br />
         {hex}
       </div>
-      {si === 0 && (
-        <button
-          className={`swatch-lock ${band.locked ? 'active' : ''}`}
-          title={band.locked ? `Unlock ${band.name}` : `Lock ${band.name}`}
-          aria-label={band.locked ? `Unlock ${band.name}` : `Lock ${band.name}`}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            band.locked = !band.locked;
-            render();
-          }}
-        >
-          <LockIcon locked={band.locked} />
-        </button>
-      )}
-      {si === 0 && (
-        <button
-          className={`swatch-solo ${store.soloBand === bi ? 'active' : ''}`}
-          title={store.soloBand === bi ? `Show all color rows` : `Solo ${band.name}`}
-          aria-label={store.soloBand === bi ? `Show all color rows` : `Solo ${band.name}`}
-          aria-pressed={store.soloBand === bi}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            store.soloBand = store.soloBand === bi ? null : bi;
-            render();
-          }}
-        >
-          <SoloIcon />
-        </button>
-      )}
     </div>
   );
 }

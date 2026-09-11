@@ -151,7 +151,14 @@ export default function ColorPanel() {
               Reset
             </button>
           </div>
-          <CurveEditor getArr={() => band.L} setArr={(bi) => (bands[bi].locked ? null : bands[bi].L)} min={0} max={1} desc />
+          <CurveEditor
+            getArr={() => band.L}
+            setArr={(bi) => (bands[bi].locked ? null : bands[bi].L)}
+            min={0}
+            max={1}
+            desc
+            syncKey={band.curveRevision}
+          />
           <div className="curve-help">Absolute row values · drag pivots · double-click to add · Alt/right-click to remove</div>
         </div>
 
@@ -162,7 +169,13 @@ export default function ColorPanel() {
               Reset
             </button>
           </div>
-          <CurveEditor getArr={() => band.C} setArr={(bi) => (bands[bi].locked ? null : bands[bi].C)} min={0} max={0.4} />
+          <CurveEditor
+            getArr={() => band.C}
+            setArr={(bi) => (bands[bi].locked ? null : bands[bi].C)}
+            min={0}
+            max={0.4}
+            syncKey={band.curveRevision}
+          />
           <div className="curve-help">Absolute row values · drag pivots · double-click to add · Alt/right-click to remove</div>
         </div>
       </div>
