@@ -7,7 +7,7 @@ function position(hue, r) {
 }
 
 function labelText(band) {
-  return `${band.locked ? '🔒 ' : ''}${band.name} ${band.hue.toFixed(3)}°`;
+  return `${band.locked ? '🔒︎ ' : ''}${band.name} ${band.hue.toFixed(3)}°`;
 }
 
 function HueMarker({ band, bi }) {

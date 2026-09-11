@@ -9,16 +9,6 @@ export default function GlobalPanel({ group }) {
   const bands = store.bands.filter((band) => group.colors.includes(band.name));
   const globalCurves = store.globalCurves[group.id];
 
-  function toggleCompact() {
-    store.compactPalette = !store.compactPalette;
-    render();
-  }
-
-  function toggleInfo() {
-    store.showColorInfo = !store.showColorInfo;
-    render();
-  }
-
   function resetAdjustments() {
     store.globalCurves[group.id].L = SHADES.map(() => 0);
     store.globalCurves[group.id].C = SHADES.map(() => 0);
@@ -49,12 +39,6 @@ export default function GlobalPanel({ group }) {
       <div className="row-between">
         <h2>Global {group.name.toLowerCase()}</h2>
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-          <button className="btn tiny" aria-pressed={store.compactPalette} onClick={toggleCompact}>
-            {store.compactPalette ? 'Compact: on' : 'Compact: off'}
-          </button>
-          <button className="btn tiny" aria-pressed={store.showColorInfo} onClick={toggleInfo}>
-            {store.showColorInfo ? 'Hide info' : 'Show info'}
-          </button>
           <button className="btn" title="Interpolate every unlocked L/C curve from the nearest locked rows around the hue wheel" onClick={resample}>
             Resample unlocked
           </button>

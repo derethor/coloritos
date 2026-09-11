@@ -135,20 +135,6 @@ export default function ColorPanel() {
 
       {store.curveTransferStatus && <div className="curve-transfer-status">{store.curveTransferStatus}</div>}
 
-      <div className="row-import">
-        <textarea
-          placeholder="Paste 11 hex colors in shade order: #fff #f5f5f5 … #111"
-          defaultValue={store.rowImportText}
-          onChange={(e) => {
-            store.rowImportText = e.target.value;
-          }}
-        />
-        <button className="btn" onClick={onImport}>
-          Import 11 colors
-        </button>
-        <div className="import-status">{store.rowImportStatus}</div>
-      </div>
-
       <div className="section">
         <div className="section-title">
           OKLCH hue (H) <span>{band.hue.toFixed(3)}°</span>
@@ -181,42 +167,6 @@ export default function ColorPanel() {
         </div>
       </div>
 
-      <div className="checks">
-        <label>
-          <input
-            type="checkbox"
-            checked={store.opts.lockOrder}
-            onChange={(e) => {
-              store.opts.lockOrder = e.target.checked;
-              render();
-            }}
-          />{' '}
-          Lock ordering
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={store.opts.lockEnds}
-            onChange={(e) => {
-              store.opts.lockEnds = e.target.checked;
-              render();
-            }}
-          />{' '}
-          Lock endpoints
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={store.soloBand === pi}
-            onChange={(e) => {
-              store.soloBand = e.target.checked ? pi : null;
-              render();
-            }}
-          />{' '}
-          Solo color
-        </label>
-      </div>
-
       <div className="num-grid">
         <div>
           H (500)
@@ -234,6 +184,20 @@ export default function ColorPanel() {
           Hex
           <b>{hex}</b>
         </div>
+      </div>
+
+      <div className="row-import">
+        <textarea
+          placeholder="Paste 11 hex colors in shade order: #fff #f5f5f5 … #111"
+          defaultValue={store.rowImportText}
+          onChange={(e) => {
+            store.rowImportText = e.target.value;
+          }}
+        />
+        <button className="btn" onClick={onImport}>
+          Import 11 colors
+        </button>
+        <div className="import-status">{store.rowImportStatus}</div>
       </div>
     </>
   );

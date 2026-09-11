@@ -6,6 +6,12 @@ function emptyGlobalCurves() {
   );
 }
 
+function initialPaletteDisplay() {
+  return Object.fromEntries(
+    COLOR_GROUPS.map(({ id }) => [id, { showColorInfo: false, compact: true, hidden: false }]),
+  );
+}
+
 export function createStore() {
   return {
     bands: makeInitialBands(),
@@ -13,8 +19,7 @@ export function createStore() {
     selected: [], // indices, in click order
     opts: { smooth: false, lockOrder: true, lockEnds: false },
     editorMode: 'rainbow',
-    showColorInfo: false,
-    compactPalette: true,
+    paletteDisplay: initialPaletteDisplay(),
     soloBand: null,
     rowImportText: '',
     rowImportStatus: '',

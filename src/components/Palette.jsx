@@ -15,10 +15,53 @@ export default function Palette() {
           .filter(({ band, bi }) => group.colors.includes(band.name) && (soloBand === null || soloBand === bi));
 
         if (!groupBands.length) return null;
+        const display = store.paletteDisplay[group.id];
+        const groupClass = [
+          'palette-group',
+          display.compact ? 'compact-palette' : '',
+          display.showColorInfo ? '' : 'hide-color-info',
+          display.hidden ? 'is-hidden' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
 
         return (
-          <section className="palette-group" key={group.name}>
-            <h2 className="palette-group-title">{group.name}</h2>
+          <section className={groupClass} key={group.name}>
+            <div className="palette-group-header">
+              <h2 className="palette-group-title">{group.name}</h2>
+              <div className="palette-group-actions">
+                <button
+                  className="btn tiny"
+                  aria-expanded={!display.hidden}
+                  onClick={() => {
+                    display.hidden = !display.hidden;
+                    render();
+                  }}
+                >
+                  {display.hidden ? 'Show' : 'Hide'}
+                </button>
+                <button
+                  className="btn tiny"
+                  aria-pressed={display.compact}
+                  onClick={() => {
+                    display.compact = !display.compact;
+                    render();
+                  }}
+                >
+                  {display.compact ? 'Compact' : 'Confort'}
+                </button>
+                <button
+                  className="btn tiny"
+                  aria-pressed={display.showColorInfo}
+                  onClick={() => {
+                    display.showColorInfo = !display.showColorInfo;
+                    render();
+                  }}
+                >
+                  {display.showColorInfo ? 'Hide info' : 'Show info'}
+                </button>
+              </div>
+            </div>
             {groupBands.map(({ band, bi }) => {
               const classes = [
                 'band',
@@ -117,18 +160,53 @@ function Swatch({ bi, si, shade, band }) {
       </div>
       {si === 0 && (
         <button
-          className="swatch-lock"
+          className={`swatch-lock ${band.locked ? 'active' : ''}`}
           title={band.locked ? `Unlock ${band.name}` : `Lock ${band.name}`}
           aria-label={band.locked ? `Unlock ${band.name}` : `Lock ${band.name}`}
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             band.locked = !band.locked;
             render();
           }}
         >
-          {band.locked ? '🔒' : '🔓'}
+          <LockIcon locked={band.locked} />
+        </button>
+      )}
+      {si === 0 && (
+        <button
+          className={`swatch-solo ${store.soloBand === bi ? 'active' : ''}`}
+          title={store.soloBand === bi ? `Show all color rows` : `Solo ${band.name}`}
+          aria-label={store.soloBand === bi ? `Show all color rows` : `Solo ${band.name}`}
+          aria-pressed={store.soloBand === bi}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            store.soloBand = store.soloBand === bi ? null : bi;
+            render();
+          }}
+        >
+          <SoloIcon />
         </button>
       )}
     </div>
+  );
+}
+
+function LockIcon({ locked }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="3.5" y="7" width="9" height="7" rx="1.5" />
+      <path d={locked ? 'M5.5 7V5a2.5 2.5 0 0 1 5 0v2' : 'M10.5 7V5a2.5 2.5 0 0 0-4.8-1'} />
+    </svg>
+  );
+}
+
+function SoloIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M2.5 5V2.5H5M11 2.5h2.5V5M13.5 11v2.5H11M5 13.5H2.5V11" />
+      <circle cx="8" cy="8" r="2" />
+    </svg>
   );
 }
