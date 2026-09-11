@@ -9,6 +9,15 @@ export const COLOR_DEFS = [
   ['stone', 58, .06], ['taupe', 45, .08], ['mauve', 325, .10], ['mist', 220, .08], ['olive', 110, .12],
 ];
 
+export const COLOR_GROUPS = [
+  { id: 'rainbow', name: 'Rainbow', colors: COLOR_DEFS.slice(0, 17).map(([name]) => name) },
+  { id: 'neutrals', name: 'Neutrals', colors: COLOR_DEFS.slice(17).map(([name]) => name) },
+];
+
+export function colorGroupFor(name) {
+  return COLOR_GROUPS.find((group) => group.colors.includes(name));
+}
+
 // Canonical Tailwind CSS OKLCH triples, compressed as L×1000,C×1000,H×1000.
 export const TW_DATA = {
   red: '971,13,17380;936,32,17717;885,62,18334;808,114,19571;704,191,22216;637,237,25331;577,245,27325;505,213,27518;444,177,26899;396,141,25723;258,92,26042',

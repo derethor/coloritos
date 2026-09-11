@@ -1,5 +1,5 @@
 import { usePaletteStore } from '../store/PaletteContext.jsx';
-import { SHADES } from '../data/colorDefs.js';
+import { COLOR_GROUPS, SHADES } from '../data/colorDefs.js';
 import { isSelected, primaryIndex, selectBand, swatchColor, swatchOklch } from '../lib/paletteLogic.js';
 
 export default function Palette() {
@@ -9,34 +9,46 @@ export default function Palette() {
 
   return (
     <div className="palette" id="palette">
-      {bands.map((band, bi) => {
-        if (soloBand !== null && soloBand !== bi) return null;
-        const classes = [
-          'band',
-          pi === bi ? 'active' : '',
-          isSelected(store, bi) && pi !== bi ? 'multiselected' : '',
-          band.locked ? 'locked' : '',
-        ]
-          .filter(Boolean)
-          .join(' ');
+      {COLOR_GROUPS.map((group) => {
+        const groupBands = bands
+          .map((band, bi) => ({ band, bi }))
+          .filter(({ band, bi }) => group.colors.includes(band.name) && (soloBand === null || soloBand === bi));
+
+        if (!groupBands.length) return null;
 
         return (
-          <div className={classes} key={band.name}>
-            <div
-              className="band-label"
-              onClick={(e) => {
-                selectBand(store, bi, e.shiftKey || e.ctrlKey || e.metaKey);
-                render();
-              }}
-            >
-              {band.name}
-            </div>
-            <div className="swatches">
-              {SHADES.map((shade, si) => (
-                <Swatch key={shade} bi={bi} si={si} shade={shade} band={band} />
-              ))}
-            </div>
-          </div>
+          <section className="palette-group" key={group.name}>
+            <h2 className="palette-group-title">{group.name}</h2>
+            {groupBands.map(({ band, bi }) => {
+              const classes = [
+                'band',
+                pi === bi ? 'active' : '',
+                isSelected(store, bi) && pi !== bi ? 'multiselected' : '',
+                band.locked ? 'locked' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
+
+              return (
+                <div className={classes} key={band.name}>
+                  <div
+                    className="band-label"
+                    onClick={(e) => {
+                      selectBand(store, bi, e.shiftKey || e.ctrlKey || e.metaKey);
+                      render();
+                    }}
+                  >
+                    {band.name}
+                  </div>
+                  <div className="swatches">
+                    {SHADES.map((shade, si) => (
+                      <Swatch key={shade} bi={bi} si={si} shade={shade} band={band} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
         );
       })}
 

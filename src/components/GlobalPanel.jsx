@@ -4,9 +4,10 @@ import { resampleUnlockedCurves } from '../lib/paletteLogic.js';
 import CurveEditor from './CurveEditor.jsx';
 import HueWheel from './HueWheel.jsx';
 
-export default function GlobalPanel() {
+export default function GlobalPanel({ group }) {
   const { store, render } = usePaletteStore();
-  const { bands, globalCurves } = store;
+  const bands = store.bands.filter((band) => group.colors.includes(band.name));
+  const globalCurves = store.globalCurves[group.id];
 
   function toggleCompact() {
     store.compactPalette = !store.compactPalette;
@@ -19,14 +20,14 @@ export default function GlobalPanel() {
   }
 
   function resetAdjustments() {
-    store.globalCurves.L = SHADES.map(() => 0);
-    store.globalCurves.C = SHADES.map(() => 0);
+    store.globalCurves[group.id].L = SHADES.map(() => 0);
+    store.globalCurves[group.id].C = SHADES.map(() => 0);
     render();
   }
 
   function resample() {
-    const result = resampleUnlockedCurves(store);
-    store.resampleStatus = result.error || `Resampled ${result.updated} unlocked rows from ${result.anchors} locked hue anchor${result.anchors === 1 ? '' : 's'}.`;
+    const result = resampleUnlockedCurves(store, group.colors);
+    store.resampleStatus[group.id] = result.error || `Resampled ${result.updated} unlocked rows from ${result.anchors} locked hue anchor${result.anchors === 1 ? '' : 's'}.`;
     render();
   }
 
@@ -38,15 +39,15 @@ export default function GlobalPanel() {
         b.C[i] = Math.min(0.4, Math.max(0, b.C[i] + globalCurves.C[i]));
       }
     });
-    store.globalCurves.L = SHADES.map(() => 0);
-    store.globalCurves.C = SHADES.map(() => 0);
+    store.globalCurves[group.id].L = SHADES.map(() => 0);
+    store.globalCurves[group.id].C = SHADES.map(() => 0);
     render();
   }
 
   return (
     <>
       <div className="row-between">
-        <h2>Global rainbow</h2>
+        <h2>Global {group.name.toLowerCase()}</h2>
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
           <button className="btn tiny" aria-pressed={store.compactPalette} onClick={toggleCompact}>
             {store.compactPalette ? 'Compact: on' : 'Compact: off'}
@@ -70,14 +71,14 @@ export default function GlobalPanel() {
         Preview additive L/C adjustments on {bands.filter((b) => !b.locked).length} unlocked rows, then apply them to bake the curves into those rows.
       </div>
 
-      {store.resampleStatus && <div className="curve-transfer-status">{store.resampleStatus}</div>}
+      {store.resampleStatus[group.id] && <div className="curve-transfer-status">{store.resampleStatus[group.id]}</div>}
 
       <div className="global-controls-grid">
         <div className="section">
           <div className="section-title">
             OKLCH hue (H) <span>360°</span>
           </div>
-          <HueWheel />
+          <HueWheel colorNames={group.colors} />
           <div className="curve-help">Drag a labeled marker around the wheel to adjust its hue. Locked colors stay fixed.</div>
         </div>
 
@@ -88,10 +89,10 @@ export default function GlobalPanel() {
             </div>
             <CurveEditor
               getArr={() => globalCurves.L}
-              setArr={(target) => (target === 'global' ? globalCurves.L : null)}
+              setArr={(target) => (target === group.id ? globalCurves.L : null)}
               min={-0.25}
               max={0.25}
-              targets={() => ['global']}
+              targets={() => [group.id]}
             />
             <div className="curve-help">Drag pivots · double-click to add · Alt/right-click a pivot to remove</div>
           </div>
@@ -102,10 +103,10 @@ export default function GlobalPanel() {
             </div>
             <CurveEditor
               getArr={() => globalCurves.C}
-              setArr={(target) => (target === 'global' ? globalCurves.C : null)}
+              setArr={(target) => (target === group.id ? globalCurves.C : null)}
               min={-0.15}
               max={0.15}
-              targets={() => ['global']}
+              targets={() => [group.id]}
             />
             <div className="curve-help">Drag pivots · double-click to add · Alt/right-click a pivot to remove</div>
           </div>

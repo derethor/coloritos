@@ -1,10 +1,11 @@
-import { SHADES } from '../data/colorDefs.js';
+import { SHADES, colorGroupFor } from '../data/colorDefs.js';
 import { oklchToSrgb } from './colorMath.js';
 
 export function swatchOklch(store, band, i) {
   const applyGlobal = !band.locked;
-  const L = Math.min(1, Math.max(0, band.L[i] + (applyGlobal ? store.globalCurves.L[i] : 0)));
-  const C = Math.min(0.4, Math.max(0, band.C[i] + (applyGlobal ? store.globalCurves.C[i] : 0)));
+  const globalCurves = store.globalCurves[colorGroupFor(band.name).id];
+  const L = Math.min(1, Math.max(0, band.L[i] + (applyGlobal ? globalCurves.L[i] : 0)));
+  const C = Math.min(0.4, Math.max(0, band.C[i] + (applyGlobal ? globalCurves.C[i] : 0)));
   return { L, C, H: band.H[i] };
 }
 
@@ -29,13 +30,13 @@ export function selectBand(store, i, additive) {
   } else {
     store.selected = [i];
   }
-  store.editorMode = 'color';
+  store.editorMode = 'row';
 }
 
 // Build periodic L(hue, shade) and C(hue, shade) surfaces from the locked rows.
 // At each shade, values are interpolated along the neighboring arc on the hue wheel.
-export function resampleUnlockedCurves(store) {
-  const { bands } = store;
+export function resampleUnlockedCurves(store, colorNames) {
+  const bands = colorNames ? store.bands.filter((band) => colorNames.includes(band.name)) : store.bands;
   const anchors = bands.filter((b) => b.locked).slice().sort((a, b) => a.hue - b.hue);
   if (!anchors.length) return { updated: 0, error: 'Lock at least one color row to use as an interpolation anchor.' };
 

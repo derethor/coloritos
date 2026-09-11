@@ -1,12 +1,18 @@
-import { SHADES, makeInitialBands } from '../data/colorDefs.js';
+import { COLOR_GROUPS, SHADES, makeInitialBands } from '../data/colorDefs.js';
+
+function emptyGlobalCurves() {
+  return Object.fromEntries(
+    COLOR_GROUPS.map(({ id }) => [id, { L: SHADES.map(() => 0), C: SHADES.map(() => 0) }]),
+  );
+}
 
 export function createStore() {
   return {
     bands: makeInitialBands(),
-    globalCurves: { L: SHADES.map(() => 0), C: SHADES.map(() => 0) },
+    globalCurves: emptyGlobalCurves(),
     selected: [], // indices, in click order
     opts: { smooth: false, lockOrder: true, lockEnds: false },
-    editorMode: 'color',
+    editorMode: 'rainbow',
     showColorInfo: false,
     compactPalette: true,
     soloBand: null,
@@ -14,6 +20,6 @@ export function createStore() {
     rowImportStatus: '',
     curveClipboard: null,
     curveTransferStatus: '',
-    resampleStatus: '',
+    resampleStatus: Object.fromEntries(COLOR_GROUPS.map(({ id }) => [id, ''])),
   };
 }

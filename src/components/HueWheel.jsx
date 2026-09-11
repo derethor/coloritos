@@ -73,15 +73,15 @@ function HueMarker({ band, bi }) {
   );
 }
 
-export default function HueWheel() {
+export default function HueWheel({ colorNames }) {
   const { store } = usePaletteStore();
 
   return (
     <div className="hue-wheel-wrap">
       <svg viewBox="0 0 300 300" className="hue-wheel">
-        {store.bands.map((band, bi) => (
-          <HueMarker key={band.name} band={band} bi={bi} />
-        ))}
+        {store.bands.map((band, bi) =>
+          colorNames.includes(band.name) ? <HueMarker key={band.name} band={band} bi={bi} /> : null,
+        )}
       </svg>
       <div className="hue-center-label">
         OKLCH H
