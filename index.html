@@ -28,13 +28,14 @@
   .swatch-lock{position:absolute;inset:0 auto 0 0;width:20px;display:grid;place-items:center;background:#0008;color:#fff;
     border:0;border-right:1px solid #ffffff30;z-index:2;cursor:pointer;font-size:13px;text-shadow:0 1px 2px #000;}
   .swatch-info{position:absolute;inset:auto 3px 3px;padding:3px 4px;border-radius:4px;background:#0007;color:#fff;
-    font:600 6px/1.15 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.03em;text-shadow:0 1px 1px #000;pointer-events:none;white-space:nowrap;}
+    font:600 7px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.02em;text-shadow:0 1px 1px #000;pointer-events:none;white-space:nowrap;}
   .swatch:first-child .swatch-info{left:22px;}
   body.hide-color-info .swatch-info{display:none;}
+  body:not(.hide-color-info) .swatch{height:92px;}
   body.compact-palette .palette{gap:2px;}
   body.compact-palette .band{padding:1px 4px;}
   body.compact-palette .swatch{height:24px;}
-  body.compact-palette:not(.hide-color-info) .swatch{height:48px;}
+  body.compact-palette:not(.hide-color-info) .swatch{height:92px;}
   body.compact-palette .swatch-lock{font-size:11px;}
 
   .shade-row{display:flex;gap:6px;margin-top:2px;}
@@ -302,7 +303,7 @@ function renderPalette(){
       const {L,C,H}=swatchOklch(band,si);
       const hex='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
       const info=document.createElement('div'); info.className='swatch-info';
-      info.innerHTML=`${band.name}-${shade}<br>OKLCH ${(L*100).toFixed(1)}% ${C.toFixed(3)} ${H.toFixed(1)}°<br>${hex}`;
+      info.innerHTML=`${band.name}-${shade}<br>L&nbsp; ${(L*100).toFixed(1)}%<br>C&nbsp; ${C.toFixed(3)}<br>H&nbsp; ${H.toFixed(1)}°<br>${hex}`;
       sw.appendChild(info);
 
       if(si===0){
@@ -675,7 +676,7 @@ function buildHueWheel(){
     const title=document.createElementNS(svg.namespaceURI,'title'); dot.appendChild(title);
 
     function update(){
-      const [x1,y1]=position(band.hue,51), [x2,y2]=position(band.hue,91), [lx,ly]=position(band.hue,116);
+      const [x1,y1]=position(band.hue,51), [x2,y2]=position(band.hue,116), [lx,ly]=position(band.hue,137);
       spoke.setAttribute('x1',x1); spoke.setAttribute('y1',y1); spoke.setAttribute('x2',x2); spoke.setAttribute('y2',y2);
       dot.setAttribute('cx',x2); dot.setAttribute('cy',y2);
       const {rgb}=oklchToSrgb(.68,.3,band.hue);
