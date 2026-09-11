@@ -128,9 +128,6 @@
 <script>
 const SHADES = [50,100,200,300,400,500,600,700,800,900,950];
 
-const L_DEFAULT = [0.971,0.936,0.885,0.808,0.729,0.646,0.566,0.483,0.397,0.313,0.208];
-const C_DEFAULT = [0.013,0.032,0.062,0.114,0.158,0.187,0.176,0.152,0.123,0.096,0.062];
-
 const COLOR_DEFS = [
   ["red",25],["orange",50],["amber",70],["yellow",95],["lime",130],
   ["green",145],["emerald",160],["teal",180],["cyan",195],["sky",230],
@@ -176,6 +173,22 @@ function tailwindRamp(name){
     return [L/1000,C/1000,H/1000];
   });
 }
+
+function deriveGlobalDefaults(){
+  const definitions=COLOR_DEFS.map(([name,,chromaScale=1])=>({ramp:tailwindRamp(name),chromaScale}));
+  const L=SHADES.map((_,i)=>definitions.reduce((sum,item)=>sum+item.ramp[i][0],0)/definitions.length);
+  // Least-squares solution for C when a row contributes globalC × chromaScale.
+  const C=SHADES.map((_,i)=>{
+    const numerator=definitions.reduce((sum,item)=>sum+item.chromaScale*item.ramp[i][1],0);
+    const denominator=definitions.reduce((sum,item)=>sum+item.chromaScale*item.chromaScale,0);
+    return numerator/denominator;
+  });
+  return {L,C};
+}
+
+const optimizedDefaults=deriveGlobalDefaults();
+const L_DEFAULT=optimizedDefaults.L;
+const C_DEFAULT=optimizedDefaults.C;
 
 function makeBand(name, hue, chromaScale=1){
   const ramp=tailwindRamp(name);
