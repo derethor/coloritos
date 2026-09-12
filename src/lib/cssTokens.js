@@ -1,5 +1,6 @@
-import { COLOR_GROUPS, SHADES } from '../data/colorDefs.js';
-import { oklchToSrgb, srgbToOklch } from './colorMath.js';
+import { COLOR_GROUPS, SHADES, TAILWIND_COLOR_NAMES } from '../data/colorDefs.js';
+import { PALETTE_PRESETS } from '../data/presets.js';
+import { isOklchInSrgbGamut, oklchToSrgb, srgbToOklch } from './colorMath.js';
 import { swatchOklch } from './paletteLogic.js';
 
 function trimNumber(value, digits = 4) {
@@ -125,4 +126,79 @@ export function applyCssTokenImport(store, parsed, mode = 'complete') {
     updated++;
   });
   return { updated, skippedLocked };
+}
+
+function gamutMapColor(color) {
+  if (isOklchInSrgbGamut(color.L, color.C, color.H)) return color;
+  let low = 0, high = color.C;
+  for (let step = 0; step < 18; step++) {
+    const chroma = (low + high) / 2;
+    if (isOklchInSrgbGamut(color.L, chroma, color.H)) low = chroma;
+    else high = chroma;
+  }
+  return { ...color, C: low };
+}
+
+function normalizePresetScale(colors) {
+  if (!colors || colors.length !== 10) return colors;
+  const previous = colors[colors.length - 2], last = colors[colors.length - 1];
+  const hueDelta = ((last.H - previous.H + 540) % 360) - 180;
+  const endpoint = gamutMapColor({
+    L: Math.max(0, last.L - (previous.L - last.L) * 0.55),
+    C: Math.max(0, last.C + (last.C - previous.C) * 0.55),
+    H: (last.H + hueDelta * 0.55 + 360) % 360,
+  });
+  return [...colors, endpoint];
+}
+
+function presetColorsForBand(preset, name) {
+  const mapping = preset.mapping?.[name] ?? name;
+  const read = (source) => normalizePresetScale(preset.colors?.[source]?.split(',').map((hex) => parseCssColor(`#${hex}`)));
+  if (typeof mapping === 'string') return read(mapping);
+  if (!mapping) return null;
+  const [fromName, toName, amount] = mapping;
+  const from = read(fromName), to = read(toName);
+  if (!from || !to) return null;
+  return from.map((color, index) => {
+    const hueDelta = ((to[index].H - color.H + 540) % 360) - 180;
+    const mixed = {
+      L: color.L + (to[index].L - color.L) * amount,
+      C: color.C + (to[index].C - color.C) * amount,
+      H: (color.H + hueDelta * amount + 360) % 360,
+    };
+    return gamutMapColor(mixed);
+  });
+}
+
+export function loadPalettePreset(store, presetId) {
+  const preset = PALETTE_PRESETS[presetId];
+  if (!preset) return { updated: 0, skippedLocked: 0 };
+  let updated = 0;
+  let skippedLocked = 0;
+  store.bands.forEach((band) => {
+    const presetColors = presetId === 'tailwind' ? null : presetColorsForBand(preset, band.name);
+    if (presetId === 'tailwind' ? !TAILWIND_COLOR_NAMES.includes(band.name) : !presetColors) return;
+    if (band.locked) {
+      skippedLocked++;
+      return;
+    }
+    if (presetId === 'tailwind') {
+      band.hue = band.default.hue;
+      band.H = band.default.H.slice();
+      band.L = band.default.L.slice();
+      band.C = band.default.C.slice();
+    } else {
+      band.H = presetColors.map((value) => value.H);
+      band.L = presetColors.map((value) => value.L);
+      band.C = presetColors.map((value) => value.C);
+      band.hue = band.H[5];
+    }
+    band.curveRevision++;
+    updated++;
+  });
+  Object.values(store.globalCurves).forEach((curves) => {
+    curves.L = SHADES.map(() => 0);
+    curves.C = SHADES.map(() => 0);
+  });
+  return { updated, skippedLocked, label: preset.label };
 }

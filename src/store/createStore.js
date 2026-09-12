@@ -36,6 +36,8 @@ export function createStore() {
     cssImportMode: 'complete',
     cssImportPreview: null,
     cssTokenStatus: '',
+    cssPreset: 'tailwind',
+    cssPresetStatus: '',
     curveClipboard: null,
     curveTransferStatus: '',
     resampleStatus: Object.fromEntries(COLOR_GROUPS.map(({ id }) => [id, ''])),

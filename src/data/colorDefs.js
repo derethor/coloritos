@@ -9,6 +9,8 @@ export const COLOR_DEFS = [
   ['stone', 58, .06], ['taupe', 45, .08], ['mauve', 325, .10], ['mist', 220, .08], ['olive', 110, .12],
 ];
 
+export const TAILWIND_COLOR_NAMES = COLOR_DEFS.slice(0, 22).map(([name]) => name);
+
 export const COLOR_GROUPS = [
   { id: 'rainbow', name: 'Rainbow', colors: COLOR_DEFS.slice(0, 17).map(([name]) => name) },
   { id: 'neutrals', name: 'Neutrals', colors: COLOR_DEFS.slice(17).map(([name]) => name) },

@@ -1,5 +1,6 @@
 import { usePaletteStore } from '../store/PaletteContext.jsx';
-import { applyCssTokenImport, exportCssTokens, parseCssTokens } from '../lib/cssTokens.js';
+import { PALETTE_PRESETS } from '../data/presets.js';
+import { applyCssTokenImport, exportCssTokens, loadPalettePreset, parseCssTokens } from '../lib/cssTokens.js';
 
 export default function CssTokenTools() {
   const { store, render } = usePaletteStore();
@@ -71,10 +72,25 @@ export default function CssTokenTools() {
     event.target.value = '';
   }
 
+  function loadPreset() {
+    const result = loadPalettePreset(store, store.cssPreset);
+    store.cssImportPreview = null;
+    store.cssPresetStatus = `Loaded ${result.label} into ${result.updated} row${result.updated === 1 ? '' : 's'}${result.skippedLocked ? `; preserved ${result.skippedLocked} locked` : ''}. Global adjustments were cleared.`;
+    render();
+  }
+
   return (
     <>
       <h2>CSS tokens</h2>
       <div className="sub">Import and export the complete palette for Tailwind or standard CSS.</div>
+      <div className="css-preset-loader">
+        <div><b>Palette preset</b><span>Replace standard color rows with a known palette.</span></div>
+        <select value={store.cssPreset} onChange={(e) => update('cssPreset', e.target.value)} aria-label="Palette preset">
+          {Object.entries(PALETTE_PRESETS).map(([id, preset]) => <option value={id} key={id}>{preset.label}</option>)}
+        </select>
+        <button className="btn" onClick={loadPreset}>Load preset</button>
+        {store.cssPresetStatus && <span className="css-preset-status">{store.cssPresetStatus}</span>}
+      </div>
       <div className="css-token-tools">
       <div className="section-title">Export CSS</div>
       <div className="css-token-options">
