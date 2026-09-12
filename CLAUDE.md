@@ -15,9 +15,13 @@ pnpm preview          # preview the production build
 
 There is no test suite, linter, or type checker configured in this repo.
 
+### Deployment
+
+`vite.config.js` sets `base` to `/coloritos/` only for `pnpm build` (production, served from GitHub Pages under that subpath), leaving `pnpm dev`/`pnpm preview` at root. `.github/workflows/deploy.yml` builds and publishes `dist/` to GitHub Pages on push.
+
 ## Architecture
 
-This project is **Coloritos**, a single-page React app (Vite + React 19) that reimplements a Tailwind CSS OKLCH color-ramp editor. The original vanilla-JS single-file version is preserved at `index.legacy.html` for reference — when in doubt about intended behavior of an interaction, that file is the ground truth the React version was ported from line-for-line.
+This project is **Coloritos**, a single-page React app (Vite + React 19) that reimplements a Tailwind CSS OKLCH color-ramp editor.
 
 ### State management: mutable store + manual re-render, not React state
 
@@ -63,4 +67,4 @@ This pattern exists because of high-frequency pointer-drag interactions (swatch 
 
 ### Styling
 
-Plain CSS in `src/index.css` (original editor rules were ported from the legacy file, with the demo styles appended), toggled via `document.body.classList` (`hide-color-info`, `compact-palette`) from `App.jsx` — not CSS Modules or Tailwind, despite the app's subject matter being Tailwind color ramps. Demo styles stay under the `.demo-*` namespace to avoid leaking component-preview rules into the editor UI.
+Plain CSS in `src/index.css` (editor rules with the demo styles appended), toggled via `document.body.classList` (`hide-color-info`, `compact-palette`) from `App.jsx` — not CSS Modules or Tailwind, despite the app's subject matter being Tailwind color ramps. Demo styles stay under the `.demo-*` namespace to avoid leaking component-preview rules into the editor UI.

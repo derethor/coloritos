@@ -190,8 +190,6 @@ src/
 
 The palette uses a mutable store with an explicit render trigger. This is intentional: pointer-drag interactions update color arrays at high frequency. Small preview-only UI state, such as the chosen demo theme, remains local to its React component.
 
-The original single-file implementation is retained in `index.legacy.html` as a behavioral reference.
-
 ## Development
 
 Available scripts:
