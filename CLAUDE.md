@@ -29,15 +29,16 @@ The app deliberately avoids `useState`/immutable updates for the core palette da
 
 This pattern exists because of high-frequency pointer-drag interactions (swatch drag, Bézier curve pivot drag, hue-wheel drag) where re-running full immutable-update/diff cycles per `pointermove` would be wasteful and where the original imperative logic mutates arrays in place. **Do not refactor this into `useState`/reducers piecemeal** — it would require rethinking the drag handlers together, not file-by-file.
 
-`CurveEditor.jsx` additionally keeps its own local pivot-fitting state (`useState`) derived from the underlying array via Ramer–Douglas–Peucker simplification (`src/lib/curveMath.js`); it only re-fits pivots from scratch when the array *reference* changes (e.g. Reset/Import/Paste reassigns a new array), not on every in-place mutation during a drag — this distinction is load-bearing for drag smoothness.
+`CurveEditor.jsx` additionally keeps its own local pivot-fitting state (`useState`) derived from the underlying array via Ramer–Douglas–Peucker simplification (`src/lib/curveMath.js`). It re-fits when the array reference changes (e.g. Reset/Import/Paste) or when its explicit `syncKey` changes. Direct swatch drags increment a band's `curveRevision` and pass that revision as the row editors' `syncKey`, keeping the visible curves synchronized with the edited swatch without changing the mutable-store architecture.
 
 ### Module layout
 
 - `src/data/colorDefs.js` — canonical Tailwind CSS OKLCH ramp data (`TW_DATA`, compressed as `L×1000,C×1000,H×1000` strings) plus `makeBand`/`makeInitialBands`, which build each color band's mutable `{hue, H, L, C, locked, default}` shape.
 - `src/lib/colorMath.js` — OKLCH ⟷ sRGB conversion and hex-parsing, pure functions, no store dependency.
+- `src/lib/brandRamp.js` — brand-color ramp generation: selects/fits a Tailwind-shaped template, preserves an exact anchor color, and gamut-maps generated chroma into sRGB.
 - `src/lib/curveMath.js` — Bézier curve fitting/sampling used by `CurveEditor`.
 - `src/lib/paletteLogic.js` — store-aware helpers (`swatchColor`, `selectBand`, `resampleUnlockedCurves`, etc.) that read/mutate a passed-in `store` object; kept separate from React components so the logic mirrors the original script closely.
-- `src/components/` — `Palette` (band rows + swatches), `Panel` (mode switcher), `ColorPanel` (per-band hue/L/C curve editing), `GlobalPanel` (hue wheel + global additive L/C curves), `CurveEditor` (reusable Bézier editor for both per-band and global curves), `HueWheel`.
+- `src/components/` — `Palette` (band rows + swatches), `Panel` (mode switcher), `ColorPanel` (per-band hue/L/C curve editing and brand-ramp tools), `GlobalPanel` (hue wheel + global additive L/C curves), `CurveEditor` (reusable Bézier editor for both per-band and global curves), `HueWheel`, and `PaletteDemo` (live component/theme gallery).
 
 ### Two editing modes, one underlying model
 
@@ -45,6 +46,17 @@ This pattern exists because of high-frequency pointer-drag interactions (swatch 
 - **Global mode** (`globalCurves.L/C`) previews an *additive* adjustment applied on top of every unlocked band's curves (see `swatchOklch` in `paletteLogic.js`), and "Apply curves" bakes that additive delta into each unlocked band's arrays and resets the global curves to zero.
 - A band's `locked` flag excludes it from global curve effects, from "Resample unlocked", and from Reset/Paste/Import operations — locked bands also serve as interpolation anchors for `resampleUnlockedCurves` (interpolated around the hue wheel between the nearest two locked hues).
 
+### Live component demo
+
+`PaletteDemo.jsx` renders beneath `Palette` in the same 1000px `.workspace-main` column. `Panel` remains their sticky sibling, so row/global controls stay visible while scrolling through the demo. Interactions inside `.demo-section` deliberately do not clear the selected row.
+
+- Demo colors are computed on every store render through `swatchColor`, so in-place ramp edits and unapplied global adjustments appear immediately.
+- Theme definitions map semantic roles (`primary`, `accent`, `success`, `warning`, `danger`, `neutral`, `gray`) to existing band names. Do not introduce separate hard-coded theme palettes.
+- Dark themes use `invertShades` and `INVERSE_SHADE` to reverse the semantic scale. This keeps existing component CSS meaningful: a `50` surface becomes the band's actual `950`, while an `800` foreground becomes its actual `200`.
+- The dark command-center specimen is intentionally different: it calls `color()` directly and always uses the bands' actual 700–950 shades, independent of theme inversion.
+- Rainbow cards and tag-cloud items use individual named bands so editing colors outside the active semantic theme remains visible in the gallery.
+- Small UI state local to the demo (currently theme and dialog visibility) uses React `useState`; this does not belong in the palette store because it does not affect palette data.
+
 ### Styling
 
-Plain CSS in `src/index.css` (ported verbatim from the legacy file's `<style>` block), toggled via `document.body.classList` (`hide-color-info`, `compact-palette`) from `App.jsx` — not CSS Modules or Tailwind, despite the app's subject matter being Tailwind color ramps.
+Plain CSS in `src/index.css` (original editor rules were ported from the legacy file, with the demo styles appended), toggled via `document.body.classList` (`hide-color-info`, `compact-palette`) from `App.jsx` — not CSS Modules or Tailwind, despite the app's subject matter being Tailwind color ramps. Demo styles stay under the `.demo-*` namespace to avoid leaking component-preview rules into the editor UI.
