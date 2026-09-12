@@ -327,6 +327,59 @@ export default function PaletteDemo() {
             </div>
           </section>
 
+          <section
+            className="demo-dark-controls demo-light-controls"
+            aria-labelledby="light-controls-title"
+            style={{
+              '--dark-950': color(activeTheme.tokens.neutral, 50),
+              '--dark-900': color(activeTheme.tokens.gray, 100),
+              '--dark-800': color(activeTheme.tokens.neutral, 200),
+              '--dark-700': color(activeTheme.tokens.gray, 300),
+              '--dark-primary-950': color(activeTheme.tokens.primary, 50),
+              '--dark-primary-900': color(activeTheme.tokens.primary, 100),
+              '--dark-primary-800': color(activeTheme.tokens.primary, 200),
+              '--dark-primary-700': color(activeTheme.tokens.primary, 600),
+              '--dark-accent-800': color(activeTheme.tokens.accent, 600),
+              '--dark-success-700': color(activeTheme.tokens.success, 600),
+              '--dark-text': color(activeTheme.tokens.neutral, 900),
+              '--dark-muted': color(activeTheme.tokens.neutral, 500),
+            }}
+          >
+            <div className="demo-dark-heading">
+              <div><span>Light control surface</span><h4 id="light-controls-title">Publishing center</h4></div>
+              <span className="demo-dark-range">Light UI controls</span>
+            </div>
+            <div className="demo-command-bar">
+              <span>⌕</span><input aria-label="Search content" placeholder="Search pages, assets, or collections…" />
+              <kbd>⌘ P</kbd>
+              <button aria-label="Search filters">☷</button>
+            </div>
+            <div className="demo-dark-grid">
+              <div className="demo-dark-group">
+                <span className="demo-dark-label">Publish</span>
+                <div className="demo-dark-actions">
+                  <button className="solid">Publish changes</button><button>Preview</button><button className="icon" aria-label="More publishing actions">•••</button>
+                </div>
+                <span className="demo-dark-label">Content view</span>
+                <div className="demo-dark-segmented"><button className="active">Pages</button><button>Assets</button><button>Forms</button></div>
+              </div>
+              <div className="demo-dark-group">
+                <label className="demo-dark-select">Collection<select defaultValue="website"><option value="website">Marketing site</option><option>Documentation</option><option>Help center</option></select></label>
+                <label className="demo-dark-field">Slug<input defaultValue="/new-release" /></label>
+              </div>
+              <div className="demo-dark-group">
+                <div className="demo-dark-toggle"><span><b>Search indexing</b><small>Allow this page in results</small></span><button className="active" aria-label="Toggle search indexing"><i /></button></div>
+                <div className="demo-dark-toggle"><span><b>Password access</b><small>Restrict this collection</small></span><button aria-label="Toggle password access"><i /></button></div>
+              </div>
+              <div className="demo-dark-group demo-dark-usage">
+                <div><span>Storage used</span><b>4.8 / 10 GB</b></div>
+                <progress max="100" value="48" />
+                <input aria-label="Image quality" type="range" min="0" max="100" defaultValue="72" />
+                <small>Image quality: 72%</small>
+              </div>
+            </div>
+          </section>
+
           <article className="demo-card demo-table-card">
             <div className="demo-card-heading"><div><h4>Team members</h4><p>Manage access and permissions</p></div><div className="demo-segmented"><button className="active">All</button><button>Active</button><button>Invited</button></div></div>
             <div className="demo-table-wrap">

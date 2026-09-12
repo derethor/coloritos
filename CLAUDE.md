@@ -36,19 +36,21 @@ This pattern exists because of high-frequency pointer-drag interactions (swatch 
 - `src/data/colorDefs.js` — canonical Tailwind CSS OKLCH ramp data (`TW_DATA`, compressed as `L×1000,C×1000,H×1000` strings) plus `makeBand`/`makeInitialBands`, which build each color band's mutable `{hue, H, L, C, locked, default}` shape.
 - `src/lib/colorMath.js` — OKLCH ⟷ sRGB conversion and hex-parsing, pure functions, no store dependency.
 - `src/lib/brandRamp.js` — brand-color ramp generation: selects/fits a Tailwind-shaped template, preserves an exact anchor color, and gamut-maps generated chroma into sRGB.
+- `src/lib/cssTokens.js` — palette-wide CSS token serialization plus transactional parsing/application for `@theme` and `:root` workflows; supports OKLCH, hex, and RGB imports.
 - `src/lib/curveMath.js` — Bézier curve fitting/sampling used by `CurveEditor`.
 - `src/lib/paletteLogic.js` — store-aware helpers (`swatchColor`, `selectBand`, `resampleUnlockedCurves`, etc.) that read/mutate a passed-in `store` object; kept separate from React components so the logic mirrors the original script closely.
-- `src/components/` — `Palette` (band rows + swatches), `Panel` (mode switcher), `ColorPanel` (per-band hue/L/C curve editing and brand-ramp tools), `GlobalPanel` (hue wheel + global additive L/C curves), `CurveEditor` (reusable Bézier editor for both per-band and global curves), `HueWheel`, and `PaletteDemo` (live component/theme gallery).
+- `src/components/` — `Palette` (band rows + swatches), `Panel` (mode switcher), `ColorPanel` (per-band hue/L/C curve editing and row tools), `CssTokenTools` (CSS import/export UI), `GlobalPanel` (hue wheel + global additive L/C curves), `CurveEditor` (reusable Bézier editor for both per-band and global curves), `HueWheel`, `PaletteDemo` (live product-component/theme gallery), and `WordPressDemo` (live editorial/content-widget preview).
 
-### Two editing modes, one underlying model
+### Editor modes, one underlying model
 
 - **Color mode** edits a selected band's (or multi-selected bands') absolute `L`/`C`/`H` arrays directly.
 - **Global mode** (`globalCurves.L/C`) previews an *additive* adjustment applied on top of every unlocked band's curves (see `swatchOklch` in `paletteLogic.js`), and "Apply curves" bakes that additive delta into each unlocked band's arrays and resets the global curves to zero.
+- **Tokens mode** provides palette-wide CSS import/export in its own sticky panel. Export scope can be the full palette, Rainbow, Neutrals, locked colors, or selected rows. "Visible colors" includes global preview adjustments; "Row values only" excludes them. Importing remains transactional until the user previews and applies it.
 - A band's `locked` flag excludes it from global curve effects, from "Resample unlocked", and from Reset/Paste/Import operations — locked bands also serve as interpolation anchors for `resampleUnlockedCurves` (interpolated around the hue wheel between the nearest two locked hues).
 
 ### Live component demo
 
-`PaletteDemo.jsx` renders beneath `Palette` in the same 1000px `.workspace-main` column. `Panel` remains their sticky sibling, so row/global controls stay visible while scrolling through the demo. Interactions inside `.demo-section` deliberately do not clear the selected row.
+`PaletteDemo.jsx` and `WordPressDemo.jsx` render beneath `Palette` in the same 1000px `.workspace-main` column. `Panel` remains their sticky sibling, so editor controls stay visible while scrolling through either preview. Interactions inside `.demo-section` or `.wp-demo-section` deliberately do not clear the selected row.
 
 - Demo colors are computed on every store render through `swatchColor`, so in-place ramp edits and unapplied global adjustments appear immediately.
 - Theme definitions map semantic roles (`primary`, `accent`, `success`, `warning`, `danger`, `neutral`, `gray`) to existing band names. Do not introduce separate hard-coded theme palettes.
@@ -56,6 +58,7 @@ This pattern exists because of high-frequency pointer-drag interactions (swatch 
 - The dark command-center specimen is intentionally different: it calls `color()` directly and always uses the bands' actual 700–950 shades, independent of theme inversion.
 - Rainbow cards and tag-cloud items use individual named bands so editing colors outside the active semantic theme remains visible in the gallery.
 - Small UI state local to the demo (currently theme and dialog visibility) uses React `useState`; this does not belong in the palette store because it does not affect palette data.
+- `WordPressDemo` uses the `.wp-*` CSS namespace and its own local theme selector. Editorial Light, Midnight Reader, and Color Journal each map the existing bands to editorial surface, content, link, accent, action, and footer tokens; no palette values are duplicated in the component.
 
 ### Styling
 

@@ -2,6 +2,7 @@ import { usePaletteStore } from '../store/PaletteContext.jsx';
 import { COLOR_GROUPS } from '../data/colorDefs.js';
 import ColorPanel from './ColorPanel.jsx';
 import GlobalPanel from './GlobalPanel.jsx';
+import CssTokenTools from './CssTokenTools.jsx';
 
 export default function Panel() {
   const { store, render } = usePaletteStore();
@@ -12,6 +13,7 @@ export default function Panel() {
     'panel',
     activeGroup ? 'global-panel' : '',
     editorMode === 'row' && selected.length > 0 ? 'color-panel' : '',
+    editorMode === 'tokens' ? 'tokens-panel' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -40,9 +42,18 @@ export default function Panel() {
         >
           Row
         </button>
+        <button
+          className={`btn ${editorMode === 'tokens' ? 'active' : ''}`}
+          onClick={() => {
+            store.editorMode = 'tokens';
+            render();
+          }}
+        >
+          Tokens
+        </button>
       </div>
 
-      {activeGroup ? <GlobalPanel group={activeGroup} /> : <ColorPanel />}
+      {activeGroup ? <GlobalPanel group={activeGroup} /> : editorMode === 'tokens' ? <CssTokenTools /> : <ColorPanel />}
     </div>
   );
 }
