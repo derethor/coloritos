@@ -1,6 +1,6 @@
-# Prismforge
+# Coloritos
 
-Prismforge is a visual color-system studio for designing complete OKLCH palettes. Shape color ramps, build a scale around an exact brand color, compare the result in live product and editorial interfaces, and exchange the finished palette as CSS design tokens.
+Coloritos is a visual color-system studio for designing complete OKLCH palettes. Shape color ramps, build a scale around an exact brand color, compare the result in live product and editorial interfaces, and exchange the finished palette as CSS design tokens.
 
 The editor includes 17 chromatic families and 9 neutral families, each with the familiar `50`–`950` shade range.
 
@@ -73,7 +73,7 @@ The Rainbow and Neutrals headers can independently hide their group, switch betw
 Select the destination row, then open **Generate ramp from a brand color** at the bottom of the Row panel.
 
 1. Enter or pick a hex color.
-2. Choose an anchor shade, or let Prismforge select it automatically.
+2. Choose an anchor shade, or let Coloritos select it automatically.
 3. Choose **Auto Tailwind** to use the closest standard ramp shape, or **Current row** to retain the selected row's character.
 4. Select **Generate**.
 
@@ -109,7 +109,7 @@ Included presets:
 - **Ant Design (AntD)** — adapts its 10-step scales to the app's 11-shade model.
 - **IBM Carbon Design System** — adapts Carbon's 10–100 grades and its cool, standard, and warm grays.
 
-For 10-step source palettes, the original colors occupy shades `50`–`900`; Prismforge derives a gamut-safe `950` endpoint. Families absent from a source system are produced with gamut-mapped OKLCH interpolation.
+For 10-step source palettes, the original colors occupy shades `50`–`900`; Coloritos derives a gamut-safe `950` endpoint. Families absent from a source system are produced with gamut-mapped OKLCH interpolation.
 
 ## CSS token import and export
 
@@ -141,7 +141,7 @@ Exported CSS can be copied to the clipboard or downloaded as `palette-tokens.css
 
 ### Import behavior
 
-Paste CSS or choose a `.css` file, then preview it before applying. Prismforge recognizes hex, RGB/RGBA, and OKLCH values whose custom-property names match the configured prefix and a known row and shade.
+Paste CSS or choose a `.css` file, then preview it before applying. Coloritos recognizes hex, RGB/RGBA, and OKLCH values whose custom-property names match the configured prefix and a known row and shade.
 
 - **Complete rows** applies only rows containing all 11 shades.
 - **Merge tokens** updates the supplied shades and preserves the rest of each row.
@@ -167,7 +167,7 @@ These previews contain no separate theme palettes: every displayed color is reso
 
 ## Color model
 
-Prismforge stores each shade as OKLCH:
+Coloritos stores each shade as OKLCH:
 
 - **L** controls perceptual lightness from `0` to `1`.
 - **C** controls chroma from `0` to `0.4`.
@@ -213,10 +213,10 @@ Preserve the existing mutable-store interaction model when extending editing beh
 
 ## Data and privacy
 
-Prismforge runs entirely in the browser and does not require a backend. Palette state is held in memory; export your CSS before refreshing or closing the page if you want to retain the current work.
+Coloritos runs entirely in the browser and does not require a backend. Palette state is held in memory; export your CSS before refreshing or closing the page if you want to retain the current work.
 
 ## License
 
-Prismforge is available under the [MIT License](LICENSE).
+Coloritos is available under the [MIT License](LICENSE).
 
 Copyright © 2026 Javier Loureiro.

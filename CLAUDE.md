@@ -17,7 +17,7 @@ There is no test suite, linter, or type checker configured in this repo.
 
 ## Architecture
 
-This is a single-page React app (Vite + React 19) that reimplements a Tailwind CSS OKLCH color-ramp editor. The original vanilla-JS single-file version is preserved at `index.legacy.html` for reference — when in doubt about intended behavior of an interaction, that file is the ground truth the React version was ported from line-for-line.
+This project is **Coloritos**, a single-page React app (Vite + React 19) that reimplements a Tailwind CSS OKLCH color-ramp editor. The original vanilla-JS single-file version is preserved at `index.legacy.html` for reference — when in doubt about intended behavior of an interaction, that file is the ground truth the React version was ported from line-for-line.
 
 ### State management: mutable store + manual re-render, not React state
 
