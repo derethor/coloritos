@@ -1,5 +1,5 @@
 // ---------- OKLCH <-> sRGB ----------
-export function oklchToSrgb(L, C, Hdeg) {
+function oklchToSrgbChannels(L, C, Hdeg) {
   const h = (Hdeg * Math.PI) / 180;
   const a = C * Math.cos(h);
   const b = C * Math.sin(h);
@@ -21,10 +21,16 @@ export function oklchToSrgb(L, C, Hdeg) {
   g = toSrgb(g);
   bl = toSrgb(bl);
 
+  return [r, g, bl];
+}
+
+export function isOklchInSrgbGamut(L, C, Hdeg) {
+  return oklchToSrgbChannels(L, C, Hdeg).every((channel) => channel >= -0.000001 && channel <= 1.000001);
+}
+
+export function oklchToSrgb(L, C, Hdeg) {
   const clamp = (c) => Math.min(1, Math.max(0, c));
-  r = clamp(r);
-  g = clamp(g);
-  bl = clamp(bl);
+  const [r, g, bl] = oklchToSrgbChannels(L, C, Hdeg).map(clamp);
 
   return { rgb: [Math.round(r * 255), Math.round(g * 255), Math.round(bl * 255)] };
 }

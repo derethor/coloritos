@@ -56,6 +56,17 @@ body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 -apple-system
 .btn.tiny{padding:2px 7px;font-size:.62rem;line-height:1.2;text-transform:none;letter-spacing:0;}
 .row-actions{display:flex;gap:5px;align-items:center;}
 
+.brand-ramp,.row-tools{padding:10px;background:#101010;border:1px solid var(--line);border-radius:9px;}
+.brand-ramp-controls{display:grid;grid-template-columns:32px minmax(90px,1fr) auto auto auto;gap:7px;align-items:end;}
+.brand-ramp-controls input,.brand-ramp-controls select{height:31px;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:7px;}
+.brand-ramp-controls input[type=color]{width:32px;padding:2px;cursor:pointer;}
+.brand-ramp-hex{min-width:0;padding:5px 8px;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;}
+.brand-ramp-controls label{display:flex;flex-direction:column;gap:2px;color:var(--sub);font-size:.62rem;}
+.brand-ramp-controls select{padding:4px 22px 4px 7px;}
+.brand-ramp-status{margin-top:6px;color:var(--accent);font-size:.68rem;}
+.row-tools .row-actions{flex-wrap:wrap;}
+.row-tools .curve-transfer-status{margin-top:7px;}
+
 .section{margin-top:16px;}
 .section-title{font-size:.68rem;letter-spacing:.08em;color:var(--sub);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
 

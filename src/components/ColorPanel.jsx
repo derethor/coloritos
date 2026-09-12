@@ -1,7 +1,8 @@
-import { SHADES } from '../data/colorDefs.js';
+import { COLOR_GROUPS, SHADES } from '../data/colorDefs.js';
 import { usePaletteStore } from '../store/PaletteContext.jsx';
 import { isSelected, primaryIndex, swatchColor, swatchOklch } from '../lib/paletteLogic.js';
 import { parseHexColors, srgbToOklch } from '../lib/colorMath.js';
+import { buildBrandRamp, closestHueBand } from '../lib/brandRamp.js';
 import CurveEditor from './CurveEditor.jsx';
 
 export default function ColorPanel() {
@@ -107,33 +108,48 @@ export default function ColorPanel() {
     render();
   }
 
+  function generateBrandRamp() {
+    const colors = parseHexColors(store.brandRampHex);
+    if (colors.length !== 1 || !/^\s*#?(?:[0-9a-f]{3}|[0-9a-f]{6})\s*$/i.test(store.brandRampHex)) {
+      store.brandRampStatus = 'Enter one valid 3- or 6-digit hex color.';
+      render();
+      return;
+    }
+    if (band.locked) {
+      store.brandRampStatus = `Unlock ${band.name} before generating its ramp.`;
+      render();
+      return;
+    }
+
+    const brand = srgbToOklch(colors[0]);
+    const rainbowNames = COLOR_GROUPS.find((group) => group.id === 'rainbow').colors;
+    const templateBand =
+      store.brandRampTemplate === 'current' ? band : closestHueBand(bands, brand.H, rainbowNames);
+    const template =
+      store.brandRampTemplate === 'current'
+        ? templateBand
+        : { ...templateBand, L: templateBand.default.L, C: templateBand.default.C, H: templateBand.default.H };
+    const ramp = buildBrandRamp(template, colors[0], store.brandRampAnchor);
+    band.L = ramp.L;
+    band.C = ramp.C;
+    band.H = ramp.H;
+    band.hue = ramp.hue;
+    band.curveRevision++;
+    const normalizedHex = '#' + colors[0].map((value) => value.toString(16).padStart(2, '0')).join('').toUpperCase();
+    store.brandRampHex = normalizedHex;
+    store.brandRampStatus = `${normalizedHex} is shade ${SHADES[ramp.anchorIndex]} in ${band.name}; shaped from ${templateBand.name}.`;
+    render();
+  }
+
   return (
     <>
       <div className="row-between">
         <h2>{multi ? `${selected.length} bands selected` : band.name}</h2>
-        <div className="row-actions">
-          <button className="btn" title={`Copy ${band.name}'s lightness and chroma curves`} onClick={copyCurves}>
-            Copy curves
-          </button>
-          <button
-            className="btn"
-            disabled={!store.curveClipboard}
-            title={store.curveClipboard ? `Paste curves from ${store.curveClipboard.source} into the selected unlocked rows` : 'Copy curves from a row first'}
-            onClick={pasteCurves}
-          >
-            Paste curves
-          </button>
-          <button className="btn" onClick={resetSelected}>
-            Reset
-          </button>
-        </div>
       </div>
 
       <div className="sub">
         {multi ? bands.filter((_, i) => isSelected(store, i)).map((b) => b.name).join(', ') : 'OKLCH ramp, shades 50 → 950'}
       </div>
-
-      {store.curveTransferStatus && <div className="curve-transfer-status">{store.curveTransferStatus}</div>}
 
       <div className="section">
         <div className="section-title">
@@ -199,18 +215,78 @@ export default function ColorPanel() {
         </div>
       </div>
 
-      <div className="row-import">
-        <textarea
-          placeholder="Paste 11 hex colors in shade order: #fff #f5f5f5 … #111"
-          defaultValue={store.rowImportText}
-          onChange={(e) => {
-            store.rowImportText = e.target.value;
-          }}
-        />
-        <button className="btn" onClick={onImport}>
-          Import 11 colors
-        </button>
-        <div className="import-status">{store.rowImportStatus}</div>
+      <div className="row-tools section">
+        <div className="section-title">Row tools</div>
+        <div className="row-actions">
+          <button className="btn" title={`Copy ${band.name}'s lightness and chroma curves`} onClick={copyCurves}>
+            Copy curves
+          </button>
+          <button
+            className="btn"
+            disabled={!store.curveClipboard}
+            title={store.curveClipboard ? `Paste curves from ${store.curveClipboard.source} into the selected unlocked rows` : 'Copy curves from a row first'}
+            onClick={pasteCurves}
+          >
+            Paste curves
+          </button>
+          <button className="btn" onClick={resetSelected}>Reset row</button>
+        </div>
+        {store.curveTransferStatus && <div className="curve-transfer-status">{store.curveTransferStatus}</div>}
+        <div className="row-import">
+          <textarea
+            placeholder="Paste 11 hex colors in shade order: #fff #f5f5f5 … #111"
+            defaultValue={store.rowImportText}
+            onChange={(e) => {
+              store.rowImportText = e.target.value;
+            }}
+          />
+          <button className="btn" onClick={onImport}>Import 11 colors</button>
+          <div className="import-status">{store.rowImportStatus}</div>
+        </div>
+      </div>
+
+      <div className="brand-ramp section">
+        <div className="section-title">Generate ramp from a brand color</div>
+        <div className="brand-ramp-controls">
+          <input
+            type="color"
+            aria-label="Brand color picker"
+            value={/^#[0-9a-f]{6}$/i.test(store.brandRampHex) ? store.brandRampHex : '#635bff'}
+            onChange={(e) => {
+              store.brandRampHex = e.target.value.toUpperCase();
+              store.brandRampStatus = '';
+              render();
+            }}
+          />
+          <input
+            className="brand-ramp-hex"
+            aria-label="Brand color hex value"
+            value={store.brandRampHex}
+            placeholder="#635BFF"
+            onChange={(e) => {
+              store.brandRampHex = e.target.value;
+              store.brandRampStatus = '';
+              render();
+            }}
+          />
+          <label>
+            Anchor
+            <select value={store.brandRampAnchor} onChange={(e) => { store.brandRampAnchor = e.target.value; render(); }}>
+              <option value="auto">Auto</option>
+              {SHADES.map((shade) => <option value={shade} key={shade}>{shade}</option>)}
+            </select>
+          </label>
+          <label>
+            Shape
+            <select value={store.brandRampTemplate} onChange={(e) => { store.brandRampTemplate = e.target.value; render(); }}>
+              <option value="auto">Auto Tailwind</option>
+              <option value="current">Current row</option>
+            </select>
+          </label>
+          <button className="btn" onClick={generateBrandRamp}>Generate</button>
+        </div>
+        <div className="curve-help">The brand color is preserved exactly at its anchor. Reset restores the original row.</div>
+        {store.brandRampStatus && <div className="brand-ramp-status">{store.brandRampStatus}</div>}
       </div>
     </>
   );
